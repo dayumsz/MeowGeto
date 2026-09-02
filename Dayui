@@ -228,6 +228,7 @@ local function cartToPolar(x, y)
 end
 
 local themeBindings = {}
+local toggleVisuals = {}
 local function BindTheme(obj, map)
 	if not obj or not map then return end
 	themeBindings[#themeBindings + 1] = { obj = obj, map = map }
@@ -1593,6 +1594,10 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 			tab.button.TextColor3 = active and T.Primary or T.TextPrimary
 			if tab.stroke then tab.stroke.Color = active and T.StrokeHover or T.Stroke end
 		end
+
+		for _, updateFn in ipairs(toggleVisuals) do
+			pcall(updateFn)
+		end
 	end
 
 	local function UpdateTheme(newThemeName)
@@ -2163,6 +2168,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					end
 				end
 				UpdateToggleVisual(State)
+				table.insert(toggleVisuals, function() UpdateToggleVisual(State) end)
 
 				BackToggle.MouseEnter:Connect(function()
 					focused = true
