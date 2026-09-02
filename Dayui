@@ -166,6 +166,21 @@ local function SaveCustomTheme(name, palette)
 	return true
 end
 
+local function DeleteCustomTheme(name)
+	name = tostring(name or "")
+	local idx = table.find(customThemeOrder, name)
+	if not idx then return false end
+	table.remove(customThemeOrder, idx)
+	if Themes[name] then Themes[name] = nil end
+	pcall(function()
+		local safe = name:gsub('[<>:"/\\|?*]', "_")
+		if isfile(THEMES_FOLDER .. "/" .. safe .. ".json") then
+			delfile(THEMES_FOLDER .. "/" .. safe .. ".json")
+		end
+	end)
+	return true
+end
+
 local function GetThemeNames()
 	local list = {}
 	for _, n in ipairs(themeOrder) do table.insert(list, n) end
@@ -320,7 +335,7 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	PickerGui.Name = "ColorPickerWindow"
 	PickerGui.BackgroundColor3 = theme.Window2
 	PickerGui.BorderSizePixel = 0
-	PickerGui.Size = UDim2.fromOffset(300, 300)
+	PickerGui.Size = UDim2.fromOffset(300, 340)
 	PickerGui.Position = UDim2.fromOffset(200, 150)
 	PickerGui.ZIndex = 500
 	PickerGui.Parent = screenGui
@@ -695,8 +710,8 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	InputRegion.BackgroundColor3 = theme.Window2
 	InputRegion.BorderSizePixel = 0
 	InputRegion.ClipsDescendants = true
-	InputRegion.Position = UDim2.new(0, 2, 0.75, 2)
-	InputRegion.Size = UDim2.new(1, -4, 0.25, -4)
+	InputRegion.Position = UDim2.new(0, 2, 0.70, 2)
+	InputRegion.Size = UDim2.new(1, -4, 0.30, -4)
 	InputRegion.ZIndex = 502
 	InputRegion.Parent = Region
 
@@ -807,6 +822,81 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	local greenContainer, greenFill, greenVal = makeRGBSlider(19, "green", green)
 	local blueContainer, blueFill, blueVal = makeRGBSlider(39, "blue", blue)
 
+	local HexLabel = Instance.new("TextLabel")
+	HexLabel.BackgroundTransparency = 1
+	HexLabel.Font = Enum.Font.Code
+	HexLabel.Size = UDim2.new(0.5, 0, 0, 16)
+	HexLabel.Position = UDim2.fromOffset(3, 62)
+	HexLabel.Text = "#000000"
+	HexLabel.TextColor3 = theme.TextPrimary
+	HexLabel.TextSize = 12
+	HexLabel.TextXAlignment = Enum.TextXAlignment.Left
+	HexLabel.TextYAlignment = Enum.TextYAlignment.Center
+	HexLabel.ZIndex = 503
+	HexLabel.Parent = InputRegion
+
+	BindTheme(HexLabel, { TextColor3 = "TextPrimary" })
+
+	local HexBox = Instance.new("TextBox")
+	HexBox.AnchorPoint = Vector2.new(1, 0)
+	HexBox.BackgroundColor3 = theme.Button1
+	HexBox.BorderSizePixel = 0
+	HexBox.Font = Enum.Font.Code
+	HexBox.Position = UDim2.new(1, -3, 0, 60)
+	HexBox.Size = UDim2.new(0.5, -9, 0, 16)
+	HexBox.Text = "#ffffff"
+	HexBox.TextColor3 = theme.TextPrimary
+	HexBox.TextSize = 13
+	HexBox.ZIndex = 503
+	HexBox.Parent = InputRegion
+
+	BindTheme(HexBox, { BackgroundColor3 = "Button1", TextColor3 = "TextPrimary" })
+
+	local HexStroke = Instance.new("UIStroke")
+	HexStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	HexStroke.Color = theme.Stroke
+	HexStroke.LineJoinMode = Enum.LineJoinMode.Round
+	HexStroke.Thickness = 1
+	HexStroke.Parent = HexBox
+
+	BindTheme(HexStroke, { Color = "Stroke" })
+
+	local function currentColor()
+		return Color3.fromRGB(red, green, blue)
+	end
+	local function setHexText()
+		HexLabel.Text = ColorToHex(currentColor())
+		HexBox.Text = ColorToHex(currentColor())
+	end
+	setHexText()
+
+	local function applyHexInput()
+		local cleaned = HexBox.Text:gsub("#", ""):gsub("%s+", "")
+		if #cleaned ~= 6 then
+			setHexText()
+			return
+		end
+		local ok, c = pcall(function()
+			return Color3.fromHex("#" .. cleaned)
+		end)
+		if ok and c then
+			red, green, blue = c.R * 255, c.G * 255, c.B * 255
+			HexBox.Text = ColorToHex(c)
+			HexLabel.Text = ColorToHex(c)
+			displayRGB()
+		else
+			setHexText()
+		end
+	end
+	HexBox.FocusLost:Connect(function()
+		applyHexInput()
+	end)
+	HexBox.InputBegan:Connect(function(input)
+		if input.KeyCode == Enum.KeyCode.Return then
+			applyHexInput()
+		end
+	end)
+
 	local function displayHSV(moveCursor)
 		local color = Color3.fromHSV(hue, sat, val)
 		red = color.R * 255
@@ -821,6 +911,8 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		redVal.Text = tostring(math.floor(red))
 		greenVal.Text = tostring(math.floor(green))
 		blueVal.Text = tostring(math.floor(blue))
+
+		setHexText()
 
 		if moveCursor then
 			local radius = sat / 2
@@ -846,6 +938,8 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		ValSliderContainer.BackgroundColor3 = Color3.fromHSV(hue, sat, 1)
 		TweenProperty(ValCursor, { Position = UDim2.fromScale(val, 0) }, 0.3, 1)
 		TweenProperty(PickerCursor, { Position = UDim2.fromScale(cx + 0.5, cy + 0.5) }, 0.3, 1)
+
+		setHexText()
 
 		if onColorChanged then
 			onColorChanged(color)
@@ -1118,7 +1212,7 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 
 	task.spawn(function()
 		PickerGui.Size = UDim2.fromOffset(300, 30)
-		TweenProperty(PickerGui, { Size = UDim2.fromOffset(300, 300) }, 0.5, 1)
+		TweenProperty(PickerGui, { Size = UDim2.fromOffset(300, 340) }, 0.5, 1)
 	end)
 
 	function pickerObj:getColor()
@@ -2708,7 +2802,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						local libPos = Main.AbsolutePosition
 						local libSize = Main.AbsoluteSize
 						local centerX = libPos.X + (libSize.X / 2) - 150
-						local centerY = libPos.Y + (libSize.Y / 2) - 150
+						local centerY = libPos.Y + (libSize.Y / 2) - 170
 						pickerWindowObj = CreateColorPicker(T, pickerName, currentColor, ScreenGui, function(color)
 							currentColor = color
 							ColorInner.BackgroundColor3 = color
@@ -3345,7 +3439,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 								local libPos = Main.AbsolutePosition
 								local libSize = Main.AbsoluteSize
 								local centerX = libPos.X + (libSize.X / 2) - 150
-								local centerY = libPos.Y + (libSize.Y / 2) - 150
+								local centerY = libPos.Y + (libSize.Y / 2) - 170
 								cpWindowObj = CreateColorPicker(T, optName, allStates[optName].colorValue, ScreenGui, function(color)
 									allStates[optName].colorValue = color
 									CPInner.BackgroundColor3 = color
@@ -3717,6 +3811,12 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					end
 				end
 
+				table.insert(toggleVisuals, function()
+					ArrowIcon.ImageColor3 = isOpen and T.Primary or T.Secondary
+					MainButton.BackgroundColor3 = T.Button1
+					MainBtnStroke.Color = T.Stroke
+				end)
+
 				MainButton.MouseEnter:Connect(function()
 					if not isOpen then
 						TweenProperty(MainButton, { BackgroundColor3 = T.Button2 }, 0.2, 2)
@@ -3862,7 +3962,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		EditorGui.Name = "ThemeEditor"
 		EditorGui.BackgroundColor3 = T.Window2
 		EditorGui.BorderSizePixel = 0
-		EditorGui.Size = UDim2.fromOffset(340, 430)
+		EditorGui.Size = UDim2.fromOffset(340, 470)
 		EditorGui.Position = UDim2.fromOffset(260, 90)
 		EditorGui.ZIndex = 480
 		EditorGui.Parent = ScreenGui
@@ -3942,12 +4042,37 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 
 		BindTheme(NameStroke, { Color = "Stroke" })
 
+		local SearchBox = Instance.new("TextBox")
+		SearchBox.Position = UDim2.fromOffset(6, 52)
+		SearchBox.Size = UDim2.new(1, -12, 0, 16)
+		SearchBox.BackgroundColor3 = T.Button1
+		SearchBox.BorderSizePixel = 0
+		SearchBox.Font = Enum.Font.SourceSans
+		SearchBox.PlaceholderText = "Search roles..."
+		SearchBox.PlaceholderColor3 = T.TextDim
+		SearchBox.Text = ""
+		SearchBox.TextColor3 = T.TextPrimary
+		SearchBox.TextSize = 12
+		SearchBox.ZIndex = 481
+		SearchBox.Parent = EditorGui
+
+		BindTheme(SearchBox, { BackgroundColor3 = "Button1", TextColor3 = "TextPrimary", PlaceholderColor3 = "TextDim" })
+
+		local SearchStroke = Instance.new("UIStroke")
+		SearchStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		SearchStroke.Color = T.Stroke
+		SearchStroke.LineJoinMode = Enum.LineJoinMode.Round
+		SearchStroke.Thickness = 1
+		SearchStroke.Parent = SearchBox
+
+		BindTheme(SearchStroke, { Color = "Stroke" })
+
+		local roleRows = {}
+
 		for i, role in ipairs(windowRoles) do
-			local yOffset = 54 + (i - 1) * 24
 			local Row = Instance.new("TextButton")
 			Row.AutoButtonColor = false
 			Row.BackgroundTransparency = 1
-			Row.Position = UDim2.fromOffset(6, yOffset)
 			Row.Size = UDim2.new(1, -12, 0, 22)
 			Row.Text = ""
 			Row.ZIndex = 481
@@ -3997,7 +4122,25 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					PreviewTheme(palette)
 				end)
 			end)
+
+			roleRows[role] = Row
 		end
+
+		local function LayoutRoleRows()
+			local y = 72
+			for _, role in ipairs(windowRoles) do
+				local r = roleRows[role]
+				local show = SearchBox.Text == "" or string.lower(role):find(string.lower(SearchBox.Text), 1, true) ~= nil
+				r.Visible = show
+				if show then
+					r.Position = UDim2.fromOffset(6, y)
+					y = y + 24
+				end
+			end
+			return y
+		end
+		LayoutRoleRows()
+		SearchBox:GetPropertyChangedSignal("Text"):Connect(LayoutRoleRows)
 
 		local function CloseEditor()
 			if Themes[prevTheme] then
@@ -4008,7 +4151,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		end
 
 		local SaveBtn = Instance.new("TextButton")
-		SaveBtn.Position = UDim2.fromOffset(6, 372)
+		SaveBtn.Position = UDim2.fromOffset(6, 424)
 		SaveBtn.Size = UDim2.new(0, 158, 0, 22)
 		SaveBtn.BackgroundColor3 = T.Button1
 		SaveBtn.BorderSizePixel = 0
@@ -4026,7 +4169,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		SaveCorner.Parent = SaveBtn
 
 		local CancelBtn = Instance.new("TextButton")
-		CancelBtn.Position = UDim2.fromOffset(170, 372)
+		CancelBtn.Position = UDim2.fromOffset(170, 424)
 		CancelBtn.Size = UDim2.new(0, 158, 0, 22)
 		CancelBtn.BackgroundColor3 = T.Button1
 		CancelBtn.BorderSizePixel = 0
@@ -4192,6 +4335,13 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		ChangeTheme = UpdateTheme,
 		PreviewTheme = PreviewTheme,
 		GetThemes = GetThemeNames,
+		DeleteTheme = DeleteCustomTheme,
+		GetCustomThemes = function()
+			local list = {}
+			for _, n in ipairs(customThemeOrder) do table.insert(list, n) end
+			return list
+		end,
+		GetCurrentTheme = function() return currentThemeName end,
 		GetTheme = function() return T end,
 		BindTheme = BindTheme,
 		Notify = Notify,
