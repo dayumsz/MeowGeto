@@ -744,14 +744,14 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		local TitleLabel = Instance.new("TextLabel")
 		TitleLabel.BackgroundTransparency = 1
 		TitleLabel.Font = Enum.Font.SourceSans
-		TitleLabel.Position = UDim2.fromOffset(0, 1)
-		TitleLabel.Size = UDim2.new(0, 26, 0, 18)
+		TitleLabel.Position = UDim2.fromOffset(6, 1)
+		TitleLabel.Size = UDim2.new(0, 18, 0, 18)
 		TitleLabel.Text = labelText
 		TitleLabel.TextColor3 = theme.TextPrimary
 		TitleLabel.TextSize = 13
 		TitleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 		TitleLabel.TextStrokeTransparency = 0.8
-		TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+		TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
 		TitleLabel.TextYAlignment = Enum.TextYAlignment.Center
 		TitleLabel.ZIndex = 503
 		TitleLabel.Parent = SliderFrame
@@ -760,8 +760,8 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 
 		local Container = Instance.new("Frame")
 		Container.BackgroundColor3 = theme.Button1
-		Container.Position = UDim2.fromOffset(26, 3)
-		Container.Size = UDim2.new(1, -60, 0, 14)
+		Container.Position = UDim2.fromOffset(22, 3)
+		Container.Size = UDim2.new(1, -56, 0, 14)
 		Container.ZIndex = 503
 		Container.Parent = SliderFrame
 
@@ -824,30 +824,13 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	local greenContainer, greenFill, greenVal = makeRGBSlider(22, "G", green)
 	local blueContainer, blueFill, blueVal = makeRGBSlider(42, "B", blue)
 
-	local HexLabel = Instance.new("TextLabel")
-	HexLabel.BackgroundTransparency = 1
-	HexLabel.Font = Enum.Font.SourceSans
-	HexLabel.Position = UDim2.fromOffset(2, 63)
-	HexLabel.Size = UDim2.new(0, 26, 0, 18)
-	HexLabel.Text = "HEX"
-	HexLabel.TextColor3 = theme.TextPrimary
-	HexLabel.TextSize = 13
-	HexLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-	HexLabel.TextStrokeTransparency = 0.8
-	HexLabel.TextXAlignment = Enum.TextXAlignment.Left
-	HexLabel.TextYAlignment = Enum.TextYAlignment.Center
-	HexLabel.ZIndex = 503
-	HexLabel.Parent = InputRegion
-
-	BindTheme(HexLabel, { TextColor3 = "TextPrimary" })
-
 	local HexBox = Instance.new("TextBox")
 	HexBox.AnchorPoint = Vector2.new(0, 0)
 	HexBox.BackgroundColor3 = theme.Button1
 	HexBox.BorderSizePixel = 0
 	HexBox.Font = Enum.Font.Code
-	HexBox.Position = UDim2.new(0, 26, 0, 63)
-	HexBox.Size = UDim2.new(1, -60, 0, 18)
+	HexBox.Position = UDim2.new(0, 2, 0, 63)
+	HexBox.Size = UDim2.new(1, -4, 0, 18)
 	HexBox.Text = "#ffffff"
 	HexBox.TextColor3 = theme.TextPrimary
 	HexBox.TextSize = 13
