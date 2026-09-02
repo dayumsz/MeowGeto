@@ -244,6 +244,7 @@ end
 
 local themeBindings = {}
 local toggleVisuals = {}
+local activeColorPickers = {}
 local function BindTheme(obj, map)
 	if not obj or not map then return end
 	themeBindings[#themeBindings + 1] = { obj = obj, map = map }
@@ -324,6 +325,12 @@ function SaveManager:Clear()
 end
 
 local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onColorChanged)
+	local existing = pickerName and activeColorPickers[pickerName]
+	if existing and existing.guiRef and existing.guiRef.Parent then
+		pcall(function() existing:destroy() end)
+		activeColorPickers[pickerName] = nil
+	end
+
 	local hue, sat, val = initialColor:ToHSV()
 	local red, green, blue = initialColor.R * 255, initialColor.G * 255, initialColor.B * 255
 	local chromaEnabled = false
@@ -496,7 +503,7 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	PickerRegion.BorderSizePixel = 0
 	PickerRegion.ClipsDescendants = true
 	PickerRegion.Position = UDim2.fromOffset(2, 2)
-	PickerRegion.Size = UDim2.new(1, -4, 0.75, -4)
+	PickerRegion.Size = UDim2.new(1, -4, 0.70, -4)
 	PickerRegion.ZIndex = 502
 	PickerRegion.Parent = Region
 
@@ -730,14 +737,14 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		local SliderFrame = Instance.new("Frame")
 		SliderFrame.BackgroundTransparency = 1
 		SliderFrame.Position = UDim2.fromOffset(0, yOffset)
-		SliderFrame.Size = UDim2.new(1, 0, 0, 24)
+		SliderFrame.Size = UDim2.new(1, 0, 0, 20)
 		SliderFrame.ZIndex = 503
 		SliderFrame.Parent = InputRegion
 
 		local Container = Instance.new("Frame")
 		Container.BackgroundColor3 = theme.Button1
-		Container.Position = UDim2.fromOffset(3, 6)
-		Container.Size = UDim2.new(1, -6, 0, 12)
+		Container.Position = UDim2.fromOffset(52, 3)
+		Container.Size = UDim2.new(1, -58, 0, 14)
 		Container.ZIndex = 503
 		Container.Parent = SliderFrame
 
@@ -778,58 +785,55 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		local TitleLabel = Instance.new("TextLabel")
 		TitleLabel.BackgroundTransparency = 1
 		TitleLabel.Font = Enum.Font.SourceSans
-		TitleLabel.Size = UDim2.new(1, 0, 1, -1)
+		TitleLabel.Position = UDim2.fromOffset(0, 1)
+		TitleLabel.Size = UDim2.new(0, 50, 0, 18)
 		TitleLabel.Text = labelText
 		TitleLabel.TextColor3 = theme.TextPrimary
-		TitleLabel.TextSize = 14
+		TitleLabel.TextSize = 13
 		TitleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 		TitleLabel.TextStrokeTransparency = 0.8
 		TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 		TitleLabel.TextYAlignment = Enum.TextYAlignment.Center
-		TitleLabel.ZIndex = 504
+		TitleLabel.ZIndex = 503
 		TitleLabel.Parent = SliderFrame
 
 		BindTheme(TitleLabel, { TextColor3 = "TextPrimary" })
 
-		local TitlePad = Instance.new("UIPadding")
-		TitlePad.PaddingLeft = UDim.new(0, 6)
-		TitlePad.Parent = TitleLabel
-
 		local ValLabel = Instance.new("TextLabel")
 		ValLabel.BackgroundTransparency = 1
-		ValLabel.Font = Enum.Font.SourceSans
-		ValLabel.Size = UDim2.new(1, 0, 1, -1)
+		ValLabel.Font = Enum.Font.Code
+		ValLabel.AnchorPoint = Vector2.new(1, 0)
+		ValLabel.Position = UDim2.new(1, -2, 0, 1)
+		ValLabel.Size = UDim2.new(0, 30, 0, 18)
 		ValLabel.Text = tostring(math.floor(initVal))
 		ValLabel.TextColor3 = theme.TextPrimary
-		ValLabel.TextSize = 14
+		ValLabel.TextSize = 12
 		ValLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 		ValLabel.TextStrokeTransparency = 0.8
 		ValLabel.TextXAlignment = Enum.TextXAlignment.Right
 		ValLabel.TextYAlignment = Enum.TextYAlignment.Center
-		ValLabel.ZIndex = 504
+		ValLabel.ZIndex = 503
 		ValLabel.Parent = SliderFrame
 
 		BindTheme(ValLabel, { TextColor3 = "TextPrimary" })
 
-		local ValPad = Instance.new("UIPadding")
-		ValPad.PaddingRight = UDim.new(0, 6)
-		ValPad.Parent = ValLabel
-
 		return Container, Fill, ValLabel
 	end
 
-	local redContainer, redFill, redVal = makeRGBSlider(-1, "red", red)
-	local greenContainer, greenFill, greenVal = makeRGBSlider(19, "green", green)
-	local blueContainer, blueFill, blueVal = makeRGBSlider(39, "blue", blue)
+	local redContainer, redFill, redVal = makeRGBSlider(2, "R", red)
+	local greenContainer, greenFill, greenVal = makeRGBSlider(22, "G", green)
+	local blueContainer, blueFill, blueVal = makeRGBSlider(42, "B", blue)
 
 	local HexLabel = Instance.new("TextLabel")
 	HexLabel.BackgroundTransparency = 1
-	HexLabel.Font = Enum.Font.Code
-	HexLabel.Size = UDim2.new(0.5, 0, 0, 16)
-	HexLabel.Position = UDim2.fromOffset(3, 62)
-	HexLabel.Text = "#000000"
+	HexLabel.Font = Enum.Font.SourceSans
+	HexLabel.Position = UDim2.fromOffset(0, 63)
+	HexLabel.Size = UDim2.new(0, 50, 0, 18)
+	HexLabel.Text = "HEX"
 	HexLabel.TextColor3 = theme.TextPrimary
-	HexLabel.TextSize = 12
+	HexLabel.TextSize = 13
+	HexLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	HexLabel.TextStrokeTransparency = 0.8
 	HexLabel.TextXAlignment = Enum.TextXAlignment.Left
 	HexLabel.TextYAlignment = Enum.TextYAlignment.Center
 	HexLabel.ZIndex = 503
@@ -842,11 +846,12 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	HexBox.BackgroundColor3 = theme.Button1
 	HexBox.BorderSizePixel = 0
 	HexBox.Font = Enum.Font.Code
-	HexBox.Position = UDim2.new(1, -3, 0, 60)
-	HexBox.Size = UDim2.new(0.5, -9, 0, 16)
+	HexBox.Position = UDim2.new(1, -2, 0, 65)
+	HexBox.Size = UDim2.new(0.48, -8, 0, 16)
 	HexBox.Text = "#ffffff"
 	HexBox.TextColor3 = theme.TextPrimary
 	HexBox.TextSize = 13
+	HexBox.TextXAlignment = Enum.TextXAlignment.Center
 	HexBox.ZIndex = 503
 	HexBox.Parent = InputRegion
 
@@ -865,16 +870,23 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		return Color3.fromRGB(red, green, blue)
 	end
 	local function setHexText()
-		HexLabel.Text = ColorToHex(currentColor())
 		HexBox.Text = ColorToHex(currentColor())
 	end
 	setHexText()
 
 	local function applyHexInput()
-		local cleaned = HexBox.Text:gsub("#", ""):gsub("%s+", "")
-		if #cleaned ~= 6 then
+		local cleaned = (HexBox.Text or ""):gsub("#", ""):gsub("%s+", ""):upper()
+		if #cleaned ~= 3 and #cleaned ~= 6 then
 			setHexText()
 			return
+		end
+		if not cleaned:match("^[0-9A-F]+$") then
+			setHexText()
+			return
+		end
+		if #cleaned == 3 then
+			local r, g, b = cleaned:sub(1, 1), cleaned:sub(2, 2), cleaned:sub(3, 3)
+			cleaned = r .. r .. g .. g .. b .. b
 		end
 		local ok, c = pcall(function()
 			return Color3.fromHex("#" .. cleaned)
@@ -882,7 +894,6 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		if ok and c then
 			red, green, blue = c.R * 255, c.G * 255, c.B * 255
 			HexBox.Text = ColorToHex(c)
-			HexLabel.Text = ColorToHex(c)
 			displayRGB()
 		else
 			setHexText()
@@ -938,6 +949,13 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		ValSliderContainer.BackgroundColor3 = Color3.fromHSV(hue, sat, 1)
 		TweenProperty(ValCursor, { Position = UDim2.fromScale(val, 0) }, 0.3, 1)
 		TweenProperty(PickerCursor, { Position = UDim2.fromScale(cx + 0.5, cy + 0.5) }, 0.3, 1)
+
+		TweenProperty(redFill, { Size = UDim2.fromScale(red / 255, 1) }, 0.3, 1)
+		TweenProperty(greenFill, { Size = UDim2.fromScale(green / 255, 1) }, 0.3, 1)
+		TweenProperty(blueFill, { Size = UDim2.fromScale(blue / 255, 1) }, 0.3, 1)
+		redVal.Text = tostring(math.floor(red))
+		greenVal.Text = tostring(math.floor(green))
+		blueVal.Text = tostring(math.floor(blue))
 
 		setHexText()
 
@@ -1166,8 +1184,14 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 
 	local pickerObj = {}
 	pickerObj.guiRef = PickerGui
+	if pickerName then
+		activeColorPickers[pickerName] = pickerObj
+	end
 
 	function pickerObj:destroy()
+		if pickerName and activeColorPickers[pickerName] == pickerObj then
+			activeColorPickers[pickerName] = nil
+		end
 		if chromaConnection then chromaConnection:Disconnect() end
 		task.spawn(function()
 			local animCon
