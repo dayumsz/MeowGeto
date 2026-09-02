@@ -889,7 +889,7 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 			cleaned = r .. r .. g .. g .. b .. b
 		end
 		local ok, c = pcall(function()
-			return Color3.fromHex("#" .. cleaned)
+			return HexToColor(cleaned)
 		end)
 		if ok and c then
 			red, green, blue = c.R * 255, c.G * 255, c.B * 255
