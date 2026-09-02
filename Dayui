@@ -342,7 +342,7 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	PickerGui.Name = "ColorPickerWindow"
 	PickerGui.BackgroundColor3 = theme.Window2
 	PickerGui.BorderSizePixel = 0
-	PickerGui.Size = UDim2.fromOffset(300, 340)
+	PickerGui.Size = UDim2.fromOffset(340, 340)
 	PickerGui.Position = UDim2.fromOffset(200, 150)
 	PickerGui.ZIndex = 500
 	PickerGui.Parent = screenGui
@@ -741,10 +741,27 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		SliderFrame.ZIndex = 503
 		SliderFrame.Parent = InputRegion
 
+		local TitleLabel = Instance.new("TextLabel")
+		TitleLabel.BackgroundTransparency = 1
+		TitleLabel.Font = Enum.Font.SourceSans
+		TitleLabel.Position = UDim2.fromOffset(0, 1)
+		TitleLabel.Size = UDim2.new(0, 26, 0, 18)
+		TitleLabel.Text = labelText
+		TitleLabel.TextColor3 = theme.TextPrimary
+		TitleLabel.TextSize = 13
+		TitleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+		TitleLabel.TextStrokeTransparency = 0.8
+		TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+		TitleLabel.TextYAlignment = Enum.TextYAlignment.Center
+		TitleLabel.ZIndex = 503
+		TitleLabel.Parent = SliderFrame
+
+		BindTheme(TitleLabel, { TextColor3 = "TextPrimary" })
+
 		local Container = Instance.new("Frame")
 		Container.BackgroundColor3 = theme.Button1
-		Container.Position = UDim2.fromOffset(52, 3)
-		Container.Size = UDim2.new(1, -58, 0, 14)
+		Container.Position = UDim2.fromOffset(26, 3)
+		Container.Size = UDim2.new(1, -60, 0, 14)
 		Container.ZIndex = 503
 		Container.Parent = SliderFrame
 
@@ -782,23 +799,6 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 		FillGrad.Rotation = 90
 		FillGrad.Parent = Fill
 
-		local TitleLabel = Instance.new("TextLabel")
-		TitleLabel.BackgroundTransparency = 1
-		TitleLabel.Font = Enum.Font.SourceSans
-		TitleLabel.Position = UDim2.fromOffset(0, 1)
-		TitleLabel.Size = UDim2.new(0, 50, 0, 18)
-		TitleLabel.Text = labelText
-		TitleLabel.TextColor3 = theme.TextPrimary
-		TitleLabel.TextSize = 13
-		TitleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-		TitleLabel.TextStrokeTransparency = 0.8
-		TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-		TitleLabel.TextYAlignment = Enum.TextYAlignment.Center
-		TitleLabel.ZIndex = 503
-		TitleLabel.Parent = SliderFrame
-
-		BindTheme(TitleLabel, { TextColor3 = "TextPrimary" })
-
 		local ValLabel = Instance.new("TextLabel")
 		ValLabel.BackgroundTransparency = 1
 		ValLabel.Font = Enum.Font.Code
@@ -827,8 +827,8 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	local HexLabel = Instance.new("TextLabel")
 	HexLabel.BackgroundTransparency = 1
 	HexLabel.Font = Enum.Font.SourceSans
-	HexLabel.Position = UDim2.fromOffset(0, 63)
-	HexLabel.Size = UDim2.new(0, 50, 0, 18)
+	HexLabel.Position = UDim2.fromOffset(2, 63)
+	HexLabel.Size = UDim2.new(0, 26, 0, 18)
 	HexLabel.Text = "HEX"
 	HexLabel.TextColor3 = theme.TextPrimary
 	HexLabel.TextSize = 13
@@ -846,8 +846,8 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	HexBox.BackgroundColor3 = theme.Button1
 	HexBox.BorderSizePixel = 0
 	HexBox.Font = Enum.Font.Code
-	HexBox.Position = UDim2.new(1, -2, 0, 65)
-	HexBox.Size = UDim2.new(0.48, -8, 0, 16)
+	HexBox.Position = UDim2.new(1, -2, 0, 63)
+	HexBox.Size = UDim2.new(1, -32, 0, 18)
 	HexBox.Text = "#ffffff"
 	HexBox.TextColor3 = theme.TextPrimary
 	HexBox.TextSize = 13
@@ -1193,41 +1193,7 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 			activeColorPickers[pickerName] = nil
 		end
 		if chromaConnection then chromaConnection:Disconnect() end
-		task.spawn(function()
-			local animCon
-			pcall(function()
-				local backgroundTransparency = {}
-				local imageTransparency = {}
-				local textTransparency = {}
-				local transparency = {}
-				local s = {
-					Frame = { backgroundTransparency },
-					ImageLabel = { backgroundTransparency, imageTransparency },
-					ImageButton = { backgroundTransparency, imageTransparency },
-					TextLabel = { backgroundTransparency, textTransparency },
-					TextButton = { backgroundTransparency, textTransparency },
-					UIStroke = { transparency },
-				}
-				local d = PickerGui:GetDescendants()
-				table.insert(d, PickerGui)
-				for _, v in ipairs(d) do
-					local a = s[v.ClassName]
-					if a then for i = 1, #a do table.insert(a[i], v) end end
-				end
-				for _, v in ipairs(transparency) do v.Transparency = 1 end
-				animCon = RunService.RenderStepped:Connect(function(dt)
-					dt = dt * 8
-					for _, v in ipairs(backgroundTransparency) do v.BackgroundTransparency += dt end
-					for _, v in ipairs(imageTransparency) do v.ImageTransparency += dt end
-					for _, v in ipairs(textTransparency) do v.TextTransparency += dt end
-				end)
-			end)
-			local tween = TweenProperty(PickerScale, { Scale = 0.6 }, 0.5, 1)
-			task.wait(0.65)
-			if animCon then pcall(function() animCon:Disconnect() end) end
-			pcall(function() tween:Cancel() end)
-			pcall(function() PickerGui:Destroy() end)
-		end)
+		pcall(function() PickerGui:Destroy() end)
 	end
 
 	CloseBtn.MouseButton1Click:Connect(function()
@@ -1235,8 +1201,8 @@ local function CreateColorPicker(theme, pickerName, initialColor, screenGui, onC
 	end)
 
 	task.spawn(function()
-		PickerGui.Size = UDim2.fromOffset(300, 30)
-		TweenProperty(PickerGui, { Size = UDim2.fromOffset(300, 340) }, 0.5, 1)
+		PickerGui.Size = UDim2.fromOffset(340, 30)
+		TweenProperty(PickerGui, { Size = UDim2.fromOffset(340, 340) }, 0.5, 1)
 	end)
 
 	function pickerObj:getColor()
