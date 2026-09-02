@@ -1600,9 +1600,9 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		end
 	end
 
-	local function UpdateTheme(newThemeName)
-		if not Themes[newThemeName] then return end
-		local newT = Themes[newThemeName]
+	local currentThemeName = "Dark"
+
+	local function ApplyPalette(newT)
 		T = newT
 		Main.BackgroundColor3 = newT.Window2
 		Header.BackgroundColor3 = newT.Window1
@@ -1615,6 +1615,16 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		SideBarStroke.Color = newT.Stroke
 		ContentStroke.Color = newT.Stroke
 		ApplyThemeBindings()
+	end
+
+	local function UpdateTheme(newThemeName)
+		if not Themes[newThemeName] then return end
+		currentThemeName = newThemeName
+		ApplyPalette(Themes[newThemeName])
+	end
+
+	local function PreviewTheme(palette)
+		ApplyPalette(palette)
 	end
 
 	local confirmDialogOpen = false
@@ -3431,6 +3441,10 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 							end
 						end
 						updateToggleVisual(allStates[opt.name].toggleValue)
+						local optToggleName = opt.name
+						table.insert(toggleVisuals, function()
+							updateToggleVisual(allStates[optToggleName].toggleValue)
+						end)
 
 						TogBtn.MouseEnter:Connect(function()
 							if allStates[opt.name].toggleValue then
@@ -3837,9 +3851,11 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		if themeEditorOpen then return end
 		themeEditorOpen = true
 
+		local prevTheme = currentThemeName
+		local baseTheme = Themes[prevTheme] or T
 		local palette = {}
 		for _, role in ipairs(windowRoles) do
-			palette[role] = T[role] or Color3.fromRGB(255, 255, 255)
+			palette[role] = baseTheme[role] or Color3.fromRGB(255, 255, 255)
 		end
 
 		local EditorGui = Instance.new("Frame")
@@ -3978,11 +3994,15 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				CreateColorPicker(T, role, palette[role], ScreenGui, function(color)
 					palette[role] = color
 					Swatch.BackgroundColor3 = color
+					PreviewTheme(palette)
 				end)
 			end)
 		end
 
 		local function CloseEditor()
+			if Themes[prevTheme] then
+				ApplyPalette(Themes[prevTheme])
+			end
 			themeEditorOpen = false
 			EditorGui:Destroy()
 		end
@@ -4031,7 +4051,8 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 			local name = SaveCustomTheme(NameBox.Text, palette)
 			if name then
 				onSave(name)
-				CloseEditor()
+				themeEditorOpen = false
+				EditorGui:Destroy()
 			end
 		end)
 
@@ -4169,6 +4190,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		AddTab = CreateTab,
 		SaveManager = saveManager,
 		ChangeTheme = UpdateTheme,
+		PreviewTheme = PreviewTheme,
 		GetThemes = GetThemeNames,
 		GetTheme = function() return T end,
 		BindTheme = BindTheme,
