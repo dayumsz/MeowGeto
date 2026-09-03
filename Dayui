@@ -3301,31 +3301,39 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 
 					local searchHighlight = Instance.new("Frame")
 					searchHighlight.Name = "SearchHighlight"
+					searchHighlight.AnchorPoint = Vector2.new(0, 0.5)
 					searchHighlight.BackgroundColor3 = T.Primary
-					searchHighlight.BackgroundTransparency = 0.82
+					searchHighlight.BackgroundTransparency = 0
 					searchHighlight.BorderSizePixel = 0
-					searchHighlight.Size = UDim2.fromScale(1, 1)
+					searchHighlight.Position = UDim2.new(0, 0, 0.5, 0)
+					searchHighlight.Size = UDim2.new(0, 2, 0, math.max(12, rowH - 10))
 					searchHighlight.Visible = false
-					searchHighlight.ZIndex = 37
+					searchHighlight.ZIndex = 40
 					searchHighlight.Parent = Row
 
-					local searchHighlightStroke = Instance.new("UIStroke")
-					searchHighlightStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					searchHighlightStroke.Color = T.Primary
-					searchHighlightStroke.Thickness = 1
-					searchHighlightStroke.Transparency = 0.15
-					searchHighlightStroke.Parent = searchHighlight
+					local searchHighlightGlow = Instance.new("Frame")
+					searchHighlightGlow.Name = "Glow"
+					searchHighlightGlow.BackgroundColor3 = T.Primary
+					searchHighlightGlow.BackgroundTransparency = 0.9
+					searchHighlightGlow.BorderSizePixel = 0
+					searchHighlightGlow.Position = UDim2.new(0, 2, 0, 0)
+					searchHighlightGlow.Size = UDim2.new(1, 18, 1, 0)
+					searchHighlightGlow.Visible = false
+					searchHighlightGlow.ZIndex = 39
+					searchHighlightGlow.Parent = Row
 
 					BindTheme(searchHighlight, { BackgroundColor3 = "Primary" })
-					BindTheme(searchHighlightStroke, { Color = "Primary" })
+					BindTheme(searchHighlightGlow, { BackgroundColor3 = "Primary" })
 
 					RegisterSearch(opt.name, Row, tabEntry, false, SectionContent, {
 						optionGroup = groupSearchEntry,
 						highlight = function(state)
 							searchHighlight.Visible = state
+							searchHighlightGlow.Visible = state
 						end,
 						clearHighlight = function()
 							searchHighlight.Visible = false
+							searchHighlightGlow.Visible = false
 						end,
 					})
 
