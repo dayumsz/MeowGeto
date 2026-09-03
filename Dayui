@@ -3311,29 +3311,15 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					searchHighlight.ZIndex = 40
 					searchHighlight.Parent = Row
 
-					local searchHighlightGlow = Instance.new("Frame")
-					searchHighlightGlow.Name = "Glow"
-					searchHighlightGlow.BackgroundColor3 = T.Primary
-					searchHighlightGlow.BackgroundTransparency = 0.9
-					searchHighlightGlow.BorderSizePixel = 0
-					searchHighlightGlow.Position = UDim2.new(0, 2, 0, 0)
-					searchHighlightGlow.Size = UDim2.new(1, 18, 1, 0)
-					searchHighlightGlow.Visible = false
-					searchHighlightGlow.ZIndex = 39
-					searchHighlightGlow.Parent = Row
-
 					BindTheme(searchHighlight, { BackgroundColor3 = "Primary" })
-					BindTheme(searchHighlightGlow, { BackgroundColor3 = "Primary" })
 
 					RegisterSearch(opt.name, Row, tabEntry, false, SectionContent, {
 						optionGroup = groupSearchEntry,
 						highlight = function(state)
 							searchHighlight.Visible = state
-							searchHighlightGlow.Visible = state
 						end,
 						clearHighlight = function()
 							searchHighlight.Visible = false
-							searchHighlightGlow.Visible = false
 						end,
 					})
 
