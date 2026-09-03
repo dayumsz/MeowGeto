@@ -1427,39 +1427,99 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 	BindTheme(SearchBox, { BackgroundColor3 = "Button1", TextColor3 = "TextPrimary", PlaceholderColor3 = "TextDim" })
 	BindTheme(SearchStroke, { Color = "Stroke" })
 
-	local function RegisterSearch(text, obj, tab, isSection, content)
-		table.insert(searchEntries, {
-			text = string.lower(text),
+	local function RegisterSearch(text, obj, tab, isSection, content, metadata)
+		metadata = metadata or {}
+		local entry = {
+			text = string.lower(tostring(text or "")),
 			obj = obj,
 			tab = tab,
 			isSection = isSection or false,
 			content = content,
-		})
+			isOptionGroup = metadata.isOptionGroup or false,
+			optionGroup = metadata.optionGroup,
+			openGroup = metadata.openGroup,
+			highlight = metadata.highlight,
+			clearHighlight = metadata.clearHighlight,
+		}
+		table.insert(searchEntries, entry)
+		return entry
 	end
 
 	local function ApplySearchFilter()
-		local query = string.lower(SearchBox.Text)
+		local query = string.lower(SearchBox.Text or "")
 		searchActive = query ~= ""
+
 		if not searchActive then
 			for _, e in ipairs(searchEntries) do
-				e.obj.Visible = true
+				if e.obj and e.obj.Parent then
+					e.obj.Visible = true
+				end
+				if e.clearHighlight then
+					e.clearHighlight()
+				end
 			end
 			return
 		end
 
 		local matchesInTab = {}
+		local matchedGroups = {}
+		local groupNameMatches = {}
+
 		for _, e in ipairs(searchEntries) do
+			if e.clearHighlight then
+				e.clearHighlight()
+			end
+
 			local match = string.find(e.text, query, 1, true) ~= nil
-			if e.isSection and match then
-				for _, child in ipairs(e.content:GetChildren()) do
-					if child:IsA("Frame") then
-						child.Visible = true
-						matchesInTab[e.tab] = true
+
+			if e.isSection then
+				e.obj.Visible = false
+			elseif e.isOptionGroup then
+				e.obj.Visible = false
+				groupNameMatches[e] = match
+				if match then
+					matchedGroups[e] = true
+					matchesInTab[e.tab] = true
+				end
+			elseif e.optionGroup then
+				e.obj.Visible = match
+				if match then
+					matchedGroups[e.optionGroup] = true
+					matchesInTab[e.tab] = true
+					if e.highlight then
+						e.highlight(true)
 					end
 				end
 			else
 				e.obj.Visible = match
-				if match then matchesInTab[e.tab] = true end
+				if match then
+					matchesInTab[e.tab] = true
+				end
+			end
+		end
+
+		for _, e in ipairs(searchEntries) do
+			if e.isOptionGroup then
+				local groupMatched = matchedGroups[e] or groupNameMatches[e]
+				if groupMatched then
+					e.obj.Visible = true
+					if e.openGroup then
+						e.openGroup(groupNameMatches[e] == true)
+					end
+					if groupNameMatches[e] then
+						for _, childEntry in ipairs(searchEntries) do
+							if childEntry.optionGroup == e then
+								childEntry.obj.Visible = true
+								if childEntry.highlight then
+									childEntry.highlight(true)
+								end
+							end
+						end
+					end
+					matchesInTab[e.tab] = true
+				else
+					e.obj.Visible = false
+				end
 			end
 		end
 
@@ -1481,6 +1541,20 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				if currentTab ~= tab.button then
 					tab.activate()
 				end
+				break
+			end
+		end
+
+		for _, e in ipairs(searchEntries) do
+			if e.isOptionGroup and matchedGroups[e] and e.openGroup then
+				task.defer(function()
+					if not searchActive or not e.obj.Parent then return end
+					local tabContent = e.tab and e.tab.content
+					if not tabContent or not tabContent.Parent then return end
+					task.wait()
+					local targetY = e.obj.AbsolutePosition.Y - tabContent.AbsolutePosition.Y + tabContent.CanvasPosition.Y - 12
+					tabContent.CanvasPosition = Vector2.new(0, math.max(0, targetY))
+				end)
 				break
 			end
 		end
@@ -3076,7 +3150,16 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				DropFrame.ZIndex = 34
 				DropFrame.Parent = SectionContent
 
-				RegisterSearch(groupName, DropFrame, tabEntry, false, SectionContent)
+				local openForSearch
+				local groupSearchEntry
+				groupSearchEntry = RegisterSearch(groupName, DropFrame, tabEntry, false, SectionContent, {
+					isOptionGroup = true,
+					openGroup = function()
+						if openForSearch then
+							openForSearch()
+						end
+					end,
+				})
 
 				local MainButton = Instance.new("TextButton")
 				MainButton.Name = "MainButton"
@@ -3215,6 +3298,36 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					Row.Size = UDim2.new(1, 0, 0, rowH)
 					Row.LayoutOrder = i
 					Row.ZIndex = 37
+
+					local searchHighlight = Instance.new("Frame")
+					searchHighlight.Name = "SearchHighlight"
+					searchHighlight.BackgroundColor3 = T.Primary
+					searchHighlight.BackgroundTransparency = 0.82
+					searchHighlight.BorderSizePixel = 0
+					searchHighlight.Size = UDim2.fromScale(1, 1)
+					searchHighlight.Visible = false
+					searchHighlight.ZIndex = 37
+					searchHighlight.Parent = Row
+
+					local searchHighlightStroke = Instance.new("UIStroke")
+					searchHighlightStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+					searchHighlightStroke.Color = T.Primary
+					searchHighlightStroke.Thickness = 1
+					searchHighlightStroke.Transparency = 0.15
+					searchHighlightStroke.Parent = searchHighlight
+
+					BindTheme(searchHighlight, { BackgroundColor3 = "Primary" })
+					BindTheme(searchHighlightStroke, { Color = "Primary" })
+
+					RegisterSearch(opt.name, Row, tabEntry, false, SectionContent, {
+						optionGroup = groupSearchEntry,
+						highlight = function(state)
+							searchHighlight.Visible = state
+						end,
+						clearHighlight = function()
+							searchHighlight.Visible = false
+						end,
+					})
 
 					if i > 1 then
 						local Sep = Instance.new("Frame")
@@ -3781,6 +3894,12 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						task.delay(0.21, function()
 							if not isOpen then OptionsFrame.Visible = false end
 						end)
+					end
+				end
+
+				openForSearch = function()
+					if not isOpen then
+						toggleOpen()
 					end
 				end
 
