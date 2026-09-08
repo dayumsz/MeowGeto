@@ -2067,9 +2067,10 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 			table.insert(tabEntry.sections, SectionFrame)
 			RegisterSearch(sectionName, SectionFrame, tabEntry, true, SectionContent)
 
-			local SectionAPI = {}
+			local function BuildSectionAPI(SectionContent)
+				local SectionAPI = {}
 
-			function SectionAPI:NewButton(btnName, description, callback, options)
+				function SectionAPI:NewButton(btnName, description, callback, options)
 				options = options or {}
 				local elementOrder = #SectionContent:GetChildren()
 
@@ -3115,6 +3116,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 							default = opt.default,
 							decimals = (type(opt.decimals) == "number") and opt.decimals or 2,
 							defaultColor = opt.defaultColor,
+							options = (type(opt.options) == "table") and opt.options or nil,
 						})
 					end
 				end
@@ -3127,17 +3129,24 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					local isKeybind = (t == "keybind")
 					local isColorPicker = (t == "colorpicker")
 					local isButton = (t == "button")
+					local isDropdown = (t == "dropdown")
 					local initKey = nil
 					if isKeybind then
 						local defRaw = opt.default
 						initKey = defRaw ~= nil and StringToKeyCode(defRaw) or Enum.KeyCode.Unknown
+					end
+					local initDrop = opt.default
+					if initDrop == nil and opt.options and #opt.options > 0 then
+						initDrop = opt.options[1]
 					end
 					allStates[opt.name] = {
 						toggleValue = hasToggle and ((defaultStates and defaultStates[opt.name] == true) or false) or nil,
 						sliderValue = hasSlider and (opt.default or opt.min or 0) or nil,
 						keybindValue = isKeybind and initKey or nil,
 						colorValue = isColorPicker and (opt.defaultColor or Color3.fromRGB(255, 255, 255)) or nil,
+						dropdownValue = isDropdown and initDrop or nil,
 						isButton = isButton or false,
+						isDropdown = isDropdown or false,
 					}
 				end
 
@@ -3257,12 +3266,39 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				local KEYBIND_ROW_H  = 28
 				local COLOR_ROW_H    = 24
 				local BUTTON_ROW_H   = 24
+				local DROPDOWN_ROW_H = 28
 
 				local rows = {}
 				local totalOptionsHeight = 0
 				local keybindInputConns = {}
 				local colorPickerWindows = {}
 				local colorPickerOpening = {}
+				local extraOptionsHeight = 0
+				local dropdownSetters = {}
+				local dropdownState = {}
+
+				local function applyGroupSize()
+					if isOpen then
+						OptionsFrame.Visible = true
+						local h = totalOptionsHeight + extraOptionsHeight
+						TweenProperty(DropFrame, { Size = UDim2.new(1, 0, 0, 20 + 6 + h) }, 0.2, 2)
+						TweenProperty(OptionsFrame, { Size = UDim2.new(1, -6, 0, h) }, 0.2, 2)
+					else
+						TweenProperty(DropFrame, { Size = UDim2.new(1, 0, 0, 20) }, 0.2, 2)
+						TweenProperty(OptionsFrame, { Size = UDim2.new(1, -6, 0, 0) }, 0.2, 2)
+						task.delay(0.21, function()
+							if not isOpen then OptionsFrame.Visible = false end
+						end)
+					end
+				end
+
+				local function closeAllDropdowns()
+					for name, setter in pairs(dropdownSetters) do
+						if dropdownState[name] then
+							setter(false)
+						end
+					end
+				end
 
 				for i, opt in ipairs(normOptions) do
 					local t = opt.type
@@ -3271,6 +3307,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					local isKeybind = (t == "keybind")
 					local isColorPicker = (t == "colorpicker")
 					local isButton = (t == "button")
+					local isDropdown = (t == "dropdown")
 					local isFloat   = (t == "sliderf" or t == "togglesliderf")
 					local decimals  = math.clamp(math.floor(opt.decimals or 0), 0, 10)
 					local fmt       = "%." .. tostring(decimals) .. "f"
@@ -3282,6 +3319,8 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						rowH = KEYBIND_ROW_H
 					elseif isButton then
 						rowH = BUTTON_ROW_H
+					elseif isDropdown then
+						rowH = DROPDOWN_ROW_H
 					elseif hasToggle and hasSlider then
 						rowH = TOGGLE_ROW_H + SLIDER_EXTRA_H
 					elseif hasSlider then
@@ -3871,6 +3910,220 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						end
 					end
 
+					if isDropdown then
+						local ddOptions = opt.options and #opt.options > 0 and opt.options or {}
+						local ddValue = allStates[opt.name].dropdownValue
+						local openList = nil
+						dropdownState[opt.name] = false
+
+						local DDLabel = Instance.new("TextLabel")
+						DDLabel.BackgroundTransparency = 1
+						DDLabel.Font = Enum.Font.SourceSans
+						DDLabel.Name = "Label"
+						DDLabel.Position = UDim2.fromOffset(8, 0)
+						DDLabel.Size = UDim2.new(0.55, 0, 1, 0)
+						DDLabel.Text = opt.name
+						DDLabel.TextColor3 = T.TextPrimary
+						DDLabel.TextSize = 14
+						DDLabel.TextXAlignment = Enum.TextXAlignment.Left
+						DDLabel.ZIndex = 38
+						DDLabel.Parent = Row
+
+						BindTheme(DDLabel, { TextColor3 = "TextPrimary" })
+
+						local DDButton = Instance.new("TextButton")
+						DDButton.AnchorPoint = Vector2.new(1, 0.5)
+						DDButton.BackgroundColor3 = T.Button1
+						DDButton.Name = "DropdownButton"
+						DDButton.Position = UDim2.new(1, -6, 0.5, 0)
+						DDButton.Size = UDim2.new(0, 84, 0, 16)
+						DDButton.Font = Enum.Font.SourceSans
+						DDButton.Text = tostring(ddValue)
+						DDButton.TextColor3 = T.TextDim
+						DDButton.TextSize = 13
+						DDButton.AutoButtonColor = false
+						DDButton.ZIndex = 38
+						DDButton.Parent = Row
+
+						local DDCorner = Instance.new("UICorner")
+						DDCorner.CornerRadius = UDim.new(0, 2)
+						DDCorner.Parent = DDButton
+
+						local DDStroke = Instance.new("UIStroke")
+						DDStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+						DDStroke.Color = T.Stroke
+						DDStroke.LineJoinMode = Enum.LineJoinMode.Round
+						DDStroke.Thickness = 1
+						DDStroke.Parent = DDButton
+
+						BindTheme(DDButton, { BackgroundColor3 = "Button1", TextColor3 = "TextDim" })
+						BindTheme(DDStroke, { Color = "Stroke" })
+
+						local DDArrow = Instance.new("ImageLabel")
+						DDArrow.AnchorPoint = Vector2.new(1, 0.5)
+						DDArrow.BackgroundTransparency = 1
+						DDArrow.Image = "rbxassetid://9801473013"
+						DDArrow.ImageColor3 = T.Secondary
+						DDArrow.Name = "Arrow"
+						DDArrow.Position = UDim2.new(1, -14, 0.5, 0)
+						DDArrow.Rotation = 0
+						DDArrow.Size = UDim2.fromOffset(12, 12)
+						DDArrow.ZIndex = 39
+						DDArrow.Parent = DDButton
+
+						BindTheme(DDArrow, { ImageColor3 = "Secondary" })
+
+						local function buildOptionList()
+							if openList then openList:Destroy() end
+							openList = Instance.new("Frame")
+							openList.Name = "DropdownOptions"
+							openList.BackgroundColor3 = T.Window3
+							openList.BorderSizePixel = 0
+							openList.Position = UDim2.fromOffset(8, DROPDOWN_ROW_H - 2)
+							openList.Size = UDim2.new(1, -16, 0, 0)
+							openList.ZIndex = 40
+							openList.Parent = Row
+
+							local ListStroke = Instance.new("UIStroke")
+							ListStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+							ListStroke.Color = T.Stroke
+							ListStroke.LineJoinMode = Enum.LineJoinMode.Round
+							ListStroke.Thickness = 1
+							ListStroke.Parent = openList
+
+							BindTheme(openList, { BackgroundColor3 = "Window3" })
+							BindTheme(ListStroke, { Color = "Stroke" })
+
+							local ListLayout = Instance.new("UIListLayout")
+							ListLayout.Padding = UDim.new(0, 2)
+							ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+							ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+							ListLayout.Parent = openList
+
+							local ListPad = Instance.new("UIPadding")
+							ListPad.PaddingTop = UDim.new(0, 2)
+							ListPad.PaddingBottom = UDim.new(0, 2)
+							ListPad.Parent = openList
+
+							for j, option in ipairs(ddOptions) do
+								local OptButton = Instance.new("TextButton")
+								OptButton.Name = tostring(option)
+								OptButton.Parent = openList
+								OptButton.BackgroundColor3 = T.Button1
+								OptButton.Size = UDim2.new(1, -6, 0, 16)
+								OptButton.Font = Enum.Font.SourceSans
+								OptButton.Text = tostring(option)
+								OptButton.TextColor3 = T.TextPrimary
+								OptButton.TextSize = 13
+								OptButton.AutoButtonColor = false
+								OptButton.ZIndex = 41
+								OptButton.LayoutOrder = j
+
+								local OptCorner = Instance.new("UICorner")
+								OptCorner.CornerRadius = UDim.new(0, 2)
+								OptCorner.Parent = OptButton
+
+								local OptStroke = Instance.new("UIStroke")
+								OptStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+								OptStroke.Color = T.Stroke
+								OptStroke.LineJoinMode = Enum.LineJoinMode.Round
+								OptStroke.Thickness = 1
+								OptStroke.Parent = OptButton
+
+								BindTheme(OptButton, { BackgroundColor3 = "Button1", TextColor3 = "TextPrimary" })
+								BindTheme(OptStroke, { Color = "Stroke" })
+
+								OptButton.MouseEnter:Connect(function()
+									TweenProperty(OptButton, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+									TweenProperty(OptStroke, { Color = T.StrokeHover }, 0.2, 2)
+								end)
+
+								OptButton.MouseLeave:Connect(function()
+									TweenProperty(OptButton, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+									TweenProperty(OptStroke, { Color = T.Stroke }, 0.2, 2)
+								end)
+
+								OptButton.MouseButton1Click:Connect(function()
+									ddValue = option
+									allStates[opt.name].dropdownValue = option
+									DDButton.Text = tostring(option)
+									dropdownSetters[opt.name](false)
+									if callback then
+										callback(opt.name, nil, option, allStates)
+									end
+								end)
+							end
+
+							local listH = #ddOptions * 18 + 2
+							openList.Size = UDim2.new(1, -16, 0, listH)
+							return listH
+						end
+
+						dropdownSetters[opt.name] = function(open)
+							local wasOpen = dropdownState[opt.name]
+							if open == wasOpen then
+								if open then buildOptionList() end
+								return
+							end
+							dropdownState[opt.name] = open
+							if open then
+								for name, setter in pairs(dropdownSetters) do
+									if name ~= opt.name and dropdownState[name] then
+										setter(false)
+									end
+								end
+								local listH = buildOptionList()
+								extraOptionsHeight = extraOptionsHeight + listH
+								Row.Size = UDim2.new(1, 0, 0, DROPDOWN_ROW_H + listH)
+								TweenProperty(DDArrow, { Rotation = 180 }, 0.2, 2)
+								applyGroupSize()
+							else
+								if openList then
+									openList:Destroy()
+									openList = nil
+								end
+								extraOptionsHeight = extraOptionsHeight - (#ddOptions * 18 + 2)
+								Row.Size = UDim2.new(1, 0, 0, DROPDOWN_ROW_H)
+								TweenProperty(DDArrow, { Rotation = 0 }, 0.2, 2)
+								applyGroupSize()
+							end
+						end
+
+						DDButton.MouseEnter:Connect(function()
+							if not dropdownState[opt.name] then
+								TweenProperty(DDButton, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+								TweenProperty(DDStroke, { Color = T.StrokeHover }, 0.2, 2)
+							end
+						end)
+
+						DDButton.MouseLeave:Connect(function()
+							if not dropdownState[opt.name] then
+								TweenProperty(DDButton, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+								TweenProperty(DDStroke, { Color = T.Stroke }, 0.2, 2)
+							end
+						end)
+
+						DDButton.MouseButton1Click:Connect(function()
+							dropdownSetters[opt.name](not dropdownState[opt.name])
+						end)
+
+						rows[opt.name] = rows[opt.name] or {}
+						rows[opt.name].ddButton = DDButton
+						rows[opt.name].setDropdown = function(value)
+							if table.find(ddOptions, value) then
+								ddValue = value
+								allStates[opt.name].dropdownValue = value
+								DDButton.Text = tostring(value)
+								if dropdownState[opt.name] then
+									dropdownSetters[opt.name](false)
+								end
+							end
+						end
+						rows[opt.name].getDropdown = function()
+							return ddValue
+						end
+					end
+
 					rows[opt.name] = rows[opt.name] or {}
 					rows[opt.name].row = Row
 				end
@@ -3878,17 +4131,10 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				local function toggleOpen()
 					isOpen = not isOpen
 					TweenProperty(ArrowIcon, { Rotation = isOpen and 180 or 0, ImageColor3 = isOpen and T.Primary or T.Secondary }, 0.2, 2)
-					if isOpen then
-						OptionsFrame.Visible = true
-						TweenProperty(DropFrame, { Size = UDim2.new(1, 0, 0, 20 + 6 + totalOptionsHeight) }, 0.2, 2)
-						TweenProperty(OptionsFrame, { Size = UDim2.new(1, -6, 0, totalOptionsHeight) }, 0.2, 2)
-					else
-						TweenProperty(DropFrame, { Size = UDim2.new(1, 0, 0, 20) }, 0.2, 2)
-						TweenProperty(OptionsFrame, { Size = UDim2.new(1, -6, 0, 0) }, 0.2, 2)
-						task.delay(0.21, function()
-							if not isOpen then OptionsFrame.Visible = false end
-						end)
+					if not isOpen then
+						closeAllDropdowns()
 					end
+					applyGroupSize()
 				end
 
 				openForSearch = function()
@@ -4009,6 +4255,19 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					if allStates[optName] then return allStates[optName].colorValue end
 				end
 
+				function methods:SetDropdown(optName, value)
+					if allStates[optName] == nil or allStates[optName].dropdownValue == nil then return end
+					local r = rows[optName]
+					if r and r.setDropdown then
+						r.setDropdown(value)
+					end
+					if callback then callback(optName, nil, value, allStates) end
+				end
+
+				function methods:GetDropdown(optName)
+					if allStates[optName] then return allStates[optName].dropdownValue end
+				end
+
 				function methods:GetAll()
 					local copy = {}
 					for k, v in pairs(allStates) do
@@ -4017,12 +4276,158 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 							sliderValue = v.sliderValue,
 							keybindValue = v.keybindValue,
 							colorValue = v.colorValue,
+							dropdownValue = v.dropdownValue,
 						}
 					end
 					return copy
 				end
 
 				return methods
+			end
+
+			return SectionAPI
+			end
+
+			local SectionAPI = BuildSectionAPI(SectionContent)
+
+			function SectionAPI:NewSubGroup(groupName, tabs)
+				local elementOrder = #SectionContent:GetChildren()
+
+				local SubFrame = Instance.new("Frame")
+				SubFrame.Name = groupName .. "_SubGroup"
+				SubFrame.Parent = SectionContent
+				SubFrame.BackgroundColor3 = T.Window3
+				SubFrame.BorderSizePixel = 0
+				SubFrame.Size = UDim2.new(1, -6, 0, 0)
+				SubFrame.AutomaticSize = Enum.AutomaticSize.Y
+				SubFrame.LayoutOrder = elementOrder
+				SubFrame.ZIndex = 34
+
+				local SubFrameStroke = Instance.new("UIStroke")
+				SubFrameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				SubFrameStroke.Color = T.Stroke
+				SubFrameStroke.LineJoinMode = Enum.LineJoinMode.Round
+				SubFrameStroke.Thickness = 1
+				SubFrameStroke.Parent = SubFrame
+
+				BindTheme(SubFrame, { BackgroundColor3 = "Window3" })
+				BindTheme(SubFrameStroke, { Color = "Stroke" })
+
+				local TabBar = Instance.new("Frame")
+				TabBar.Name = "TabBar"
+				TabBar.Parent = SubFrame
+				TabBar.BackgroundColor3 = T.Window2
+				TabBar.BorderSizePixel = 0
+				TabBar.Size = UDim2.new(1, 0, 0, 22)
+				TabBar.ZIndex = 35
+
+				local TabBarStroke = Instance.new("UIStroke")
+				TabBarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				TabBarStroke.Color = T.Stroke
+				TabBarStroke.LineJoinMode = Enum.LineJoinMode.Round
+				TabBarStroke.Thickness = 1
+				TabBarStroke.Parent = TabBar
+
+				BindTheme(TabBar, { BackgroundColor3 = "Window2" })
+				BindTheme(TabBarStroke, { Color = "Stroke" })
+
+				local TabLayout = Instance.new("UIListLayout")
+				TabLayout.Parent = TabBar
+				TabLayout.Padding = UDim.new(0, 4)
+				TabLayout.FillDirection = Enum.FillDirection.Horizontal
+				TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+				TabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+				TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+				local TabBarPad = Instance.new("UIPadding")
+				TabBarPad.PaddingLeft = UDim.new(0, 4)
+				TabBarPad.PaddingTop = UDim.new(0, 3)
+				TabBarPad.Parent = TabBar
+
+				local Panels = {}
+				local TabButtons = {}
+				local activeIndex = 1
+
+				for i, tabDef in ipairs(tabs) do
+					local tabName = tabDef.name or ("Tab " .. i)
+
+					local Btn = Instance.new("TextButton")
+					Btn.Name = tabName .. "_TabButton"
+					Btn.Parent = TabBar
+					Btn.BackgroundColor3 = (i == 1) and T.Primary or T.Button1
+					Btn.Size = UDim2.new(0, 80, 0, 16)
+					Btn.Font = Enum.Font.SourceSans
+					Btn.Text = tabName
+					Btn.TextColor3 = (i == 1) and T.TextPrimary or T.TextDim
+					Btn.TextSize = 13
+					Btn.AutoButtonColor = false
+					Btn.LayoutOrder = i
+					Btn.ZIndex = 36
+
+					local BtnCorner = Instance.new("UICorner")
+					BtnCorner.CornerRadius = UDim.new(0, 2)
+					BtnCorner.Parent = Btn
+
+					BindTheme(Btn, { BackgroundColor3 = (i == 1) and "Primary" or "Button1", TextColor3 = (i == 1) and "TextPrimary" or "TextDim" })
+					TabButtons[i] = Btn
+
+					local Panel = Instance.new("Frame")
+					Panel.Name = tabName .. "_Panel"
+					Panel.Parent = SubFrame
+					Panel.BackgroundTransparency = 1
+					Panel.BorderSizePixel = 0
+					Panel.Position = UDim2.fromOffset(0, 23)
+					Panel.Size = UDim2.new(1, 0, 0, 0)
+					Panel.AutomaticSize = Enum.AutomaticSize.Y
+					Panel.Visible = (i == 1)
+					Panel.LayoutOrder = i
+					Panel.ZIndex = 35
+					Panels[i] = Panel
+
+					local PanelList = Instance.new("UIListLayout")
+					PanelList.Parent = Panel
+					PanelList.Padding = UDim.new(0, 4)
+					PanelList.FillDirection = Enum.FillDirection.Vertical
+					PanelList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+					PanelList.VerticalAlignment = Enum.VerticalAlignment.Top
+					PanelList.SortOrder = Enum.SortOrder.LayoutOrder
+
+					local PanelPad = Instance.new("UIPadding")
+					PanelPad.PaddingTop = UDim.new(0, 4)
+					PanelPad.PaddingBottom = UDim.new(0, 4)
+					PanelPad.Parent = Panel
+
+					Btn.MouseButton1Click:Connect(function()
+						if activeIndex == i then return end
+						Panels[activeIndex].Visible = false
+						local prev = TabButtons[activeIndex]
+TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextDim }, 0.15, 2)
+						Panels[i].Visible = true
+						TweenProperty(Btn, { BackgroundColor3 = T.Primary, TextColor3 = T.TextPrimary }, 0.15, 2)
+						activeIndex = i
+					end)
+				end
+
+				local subAPIs = {}
+				for i = 1, #Panels do
+					subAPIs[i] = BuildSectionAPI(Panels[i])
+				end
+
+				return {
+					Frame = SubFrame,
+					Panels = Panels,
+					Apis = subAPIs,
+					SetActive = function(i)
+						if not Panels[i] then return end
+						if activeIndex == i then return end
+						Panels[activeIndex].Visible = false
+						local prev = TabButtons[activeIndex]
+						TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextDim }, 0.15, 2)
+						Panels[i].Visible = true
+						TweenProperty(TabButtons[i], { BackgroundColor3 = T.Primary, TextColor3 = T.TextPrimary }, 0.15, 2)
+						activeIndex = i
+					end,
+				}
 			end
 
 			return SectionAPI
