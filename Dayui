@@ -4292,34 +4292,120 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 
 			function SectionAPI:NewSubGroup(groupName, tabs)
 				local elementOrder = #SectionContent:GetChildren()
+				local isOpen = false
 
-				local SubFrame = Instance.new("Frame")
-				SubFrame.Name = groupName .. "_SubGroup"
-				SubFrame.Parent = SectionContent
-				SubFrame.BackgroundColor3 = T.Window3
-				SubFrame.BorderSizePixel = 0
-				SubFrame.Size = UDim2.new(1, -6, 0, 0)
-				SubFrame.AutomaticSize = Enum.AutomaticSize.Y
-				SubFrame.LayoutOrder = elementOrder
-				SubFrame.ZIndex = 34
+				local DropFrame = Instance.new("Frame")
+				DropFrame.Name = groupName .. "_SubGroup"
+				DropFrame.Parent = SectionContent
+				DropFrame.BackgroundTransparency = 1
+				DropFrame.BorderSizePixel = 0
+				DropFrame.Size = UDim2.new(1, 0, 0, 20)
+				DropFrame.LayoutOrder = elementOrder
+				DropFrame.ZIndex = 34
 
-				local SubFrameStroke = Instance.new("UIStroke")
-				SubFrameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-				SubFrameStroke.Color = T.Stroke
-				SubFrameStroke.LineJoinMode = Enum.LineJoinMode.Round
-				SubFrameStroke.Thickness = 1
-				SubFrameStroke.Parent = SubFrame
+				local openForSearch
+				local groupSearchEntry
+				groupSearchEntry = RegisterSearch(groupName, DropFrame, tabEntry, false, SectionContent, {
+					isOptionGroup = true,
+					openGroup = function()
+						if openForSearch then
+							openForSearch()
+						end
+					end,
+				})
 
-				BindTheme(SubFrame, { BackgroundColor3 = "Window3" })
-				BindTheme(SubFrameStroke, { Color = "Stroke" })
+				local MainButton = Instance.new("TextButton")
+				MainButton.Name = "MainButton"
+				MainButton.Parent = DropFrame
+				MainButton.BackgroundColor3 = T.Button1
+				MainButton.Size = UDim2.new(1, -6, 0, 16)
+				MainButton.Position = UDim2.fromOffset(3, 2)
+				MainButton.Font = Enum.Font.SourceSans
+				MainButton.Text = ""
+				MainButton.AutoButtonColor = false
+				MainButton.ZIndex = 35
+
+				local MainBtnCorner = Instance.new("UICorner")
+				MainBtnCorner.CornerRadius = UDim.new(0, 2)
+				MainBtnCorner.Parent = MainButton
+
+				local MainBtnStroke = Instance.new("UIStroke")
+				MainBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				MainBtnStroke.Color = T.Stroke
+				MainBtnStroke.LineJoinMode = Enum.LineJoinMode.Round
+				MainBtnStroke.Thickness = 1
+				MainBtnStroke.Parent = MainButton
+
+				BindTheme(MainButton, { BackgroundColor3 = "Button1" })
+				BindTheme(MainBtnStroke, { Color = "Stroke" })
+
+				local MainBtnLabel = Instance.new("TextLabel")
+				MainBtnLabel.BackgroundTransparency = 1
+				MainBtnLabel.Font = Enum.Font.SourceSans
+				MainBtnLabel.Name = "Label"
+				MainBtnLabel.Size = UDim2.fromScale(1, 1)
+				MainBtnLabel.Text = groupName
+				MainBtnLabel.TextColor3 = T.TextPrimary
+				MainBtnLabel.TextSize = 14
+				MainBtnLabel.TextXAlignment = Enum.TextXAlignment.Left
+				MainBtnLabel.ZIndex = 36
+				MainBtnLabel.Parent = MainButton
+
+				local MainBtnLabelPad = Instance.new("UIPadding")
+				MainBtnLabelPad.PaddingLeft = UDim.new(0, 6)
+				MainBtnLabelPad.Parent = MainBtnLabel
+
+				BindTheme(MainBtnLabel, { TextColor3 = "TextPrimary" })
+
+				local ArrowIcon = Instance.new("ImageLabel")
+				ArrowIcon.AnchorPoint = Vector2.new(1, 0.5)
+				ArrowIcon.BackgroundTransparency = 1
+				ArrowIcon.Image = "rbxassetid://9801473013"
+				ArrowIcon.ImageColor3 = T.Secondary
+				ArrowIcon.Name = "Arrow"
+				ArrowIcon.Position = UDim2.fromScale(1, 0.5)
+				ArrowIcon.Rotation = 0
+				ArrowIcon.Size = UDim2.fromOffset(16, 16)
+				ArrowIcon.ZIndex = 36
+				ArrowIcon.Parent = MainButton
+
+				BindTheme(ArrowIcon, { ImageColor3 = "Secondary" })
+
+				local ArrowIconGrad = Instance.new("UIGradient")
+				ArrowIconGrad.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 200, 200))
+				ArrowIconGrad.Rotation = 90
+				ArrowIconGrad.Parent = ArrowIcon
+
+				local ContentFrame = Instance.new("Frame")
+				ContentFrame.Name = "ContentFrame"
+				ContentFrame.Parent = DropFrame
+				ContentFrame.BackgroundColor3 = T.Window3
+				ContentFrame.BackgroundTransparency = 0
+				ContentFrame.BorderSizePixel = 0
+				ContentFrame.Position = UDim2.fromOffset(3, 22)
+				ContentFrame.Size = UDim2.new(1, -6, 0, 0)
+				ContentFrame.AutomaticSize = Enum.AutomaticSize.Y
+				ContentFrame.Visible = false
+				ContentFrame.ZIndex = 36
+
+				local ContentFrameStroke = Instance.new("UIStroke")
+				ContentFrameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				ContentFrameStroke.Color = T.Stroke
+				ContentFrameStroke.LineJoinMode = Enum.LineJoinMode.Round
+				ContentFrameStroke.Thickness = 1
+				ContentFrameStroke.Parent = ContentFrame
+
+				BindTheme(ContentFrame, { BackgroundColor3 = "Window3" })
+				BindTheme(ContentFrameStroke, { Color = "Stroke" })
 
 				local TabBar = Instance.new("Frame")
 				TabBar.Name = "TabBar"
-				TabBar.Parent = SubFrame
+				TabBar.Parent = ContentFrame
 				TabBar.BackgroundColor3 = T.Window2
 				TabBar.BorderSizePixel = 0
 				TabBar.Size = UDim2.new(1, 0, 0, 22)
-				TabBar.ZIndex = 35
+				TabBar.LayoutOrder = 1
+				TabBar.ZIndex = 36
 
 				local TabBarStroke = Instance.new("UIStroke")
 				TabBarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -4344,6 +4430,19 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				TabBarPad.PaddingTop = UDim.new(0, 3)
 				TabBarPad.Parent = TabBar
 
+				local ContentList = Instance.new("UIListLayout")
+				ContentList.Parent = ContentFrame
+				ContentList.Padding = UDim.new(0, 2)
+				ContentList.FillDirection = Enum.FillDirection.Vertical
+				ContentList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+				ContentList.VerticalAlignment = Enum.VerticalAlignment.Top
+				ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+
+				local ContentPad = Instance.new("UIPadding")
+				ContentPad.PaddingTop = UDim.new(0, 2)
+				ContentPad.PaddingBottom = UDim.new(0, 2)
+				ContentPad.Parent = ContentFrame
+
 				local Panels = {}
 				local TabButtons = {}
 				local activeIndex = 1
@@ -4362,7 +4461,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					Btn.TextSize = 13
 					Btn.AutoButtonColor = false
 					Btn.LayoutOrder = i
-					Btn.ZIndex = 36
+					Btn.ZIndex = 37
 
 					local BtnCorner = Instance.new("UICorner")
 					BtnCorner.CornerRadius = UDim.new(0, 2)
@@ -4373,15 +4472,14 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 
 					local Panel = Instance.new("Frame")
 					Panel.Name = tabName .. "_Panel"
-					Panel.Parent = SubFrame
+					Panel.Parent = ContentFrame
 					Panel.BackgroundTransparency = 1
 					Panel.BorderSizePixel = 0
-					Panel.Position = UDim2.fromOffset(0, 23)
 					Panel.Size = UDim2.new(1, 0, 0, 0)
 					Panel.AutomaticSize = Enum.AutomaticSize.Y
 					Panel.Visible = (i == 1)
-					Panel.LayoutOrder = i
-					Panel.ZIndex = 35
+					Panel.LayoutOrder = i + 1
+					Panel.ZIndex = 36
 					Panels[i] = Panel
 
 					local PanelList = Instance.new("UIListLayout")
@@ -4413,8 +4511,44 @@ TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextDim }, 0.
 					subAPIs[i] = BuildSectionAPI(Panels[i])
 				end
 
+				local function toggleOpen()
+					isOpen = not isOpen
+					TweenProperty(ArrowIcon, { Rotation = isOpen and 180 or 0, ImageColor3 = isOpen and T.Primary or T.Secondary }, 0.2, 2)
+					if isOpen then
+						ContentFrame.Visible = true
+						DropFrame.AutomaticSize = Enum.AutomaticSize.Y
+						DropFrame.Size = UDim2.new(1, 0, 0, 20)
+					else
+						ContentFrame.Visible = false
+						DropFrame.AutomaticSize = Enum.AutomaticSize.None
+						DropFrame.Size = UDim2.new(1, 0, 0, 20)
+					end
+				end
+
+				openForSearch = function()
+					if not isOpen then
+						toggleOpen()
+					end
+				end
+
+				MainButton.MouseEnter:Connect(function()
+					if not isOpen then
+						TweenProperty(MainButton, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+						TweenProperty(MainBtnStroke, { Color = T.StrokeHover }, 0.2, 2)
+					end
+				end)
+
+				MainButton.MouseLeave:Connect(function()
+					if not isOpen then
+						TweenProperty(MainButton, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+						TweenProperty(MainBtnStroke, { Color = T.Stroke }, 0.2, 2)
+					end
+				end)
+
+				MainButton.MouseButton1Click:Connect(toggleOpen)
+
 				return {
-					Frame = SubFrame,
+					Frame = DropFrame,
 					Panels = Panels,
 					Apis = subAPIs,
 					SetActive = function(i)
