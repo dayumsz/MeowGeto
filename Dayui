@@ -3099,9 +3099,10 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				return keybindObject
 			end
 
-			function SectionAPI:NewOptionGroup(groupName, options, defaultStates, callback)
+			function SectionAPI:NewOptionGroup(groupName, options, defaultStates, callback, widgetOpts)
 				local elementOrder = #SectionContent:GetChildren()
-				local isOpen = false
+				local flat = (widgetOpts and widgetOpts.flat == true) or false
+				local isOpen = flat
 
 				local normOptions = {}
 				for _, opt in ipairs(options) do
@@ -3124,12 +3125,13 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				local allStates = {}
 				for _, opt in ipairs(normOptions) do
 					local t = opt.type
-					local hasToggle = (t == "toggle" or t == "toggleslider" or t == "togglesliderf")
+					local hasToggle = (t == "toggle" or t == "toggleslider" or t == "togglesliderf" or t == "toggledropdown")
 					local hasSlider = (t == "slider" or t == "sliderf" or t == "toggleslider" or t == "togglesliderf")
 					local isKeybind = (t == "keybind")
 					local isColorPicker = (t == "colorpicker")
 					local isButton = (t == "button")
-					local isDropdown = (t == "dropdown")
+					local isDropdown = (t == "dropdown" or t == "toggledropdown")
+					local isToggleDropdown = (t == "toggledropdown")
 					local initKey = nil
 					if isKeybind then
 						local defRaw = opt.default
@@ -3153,11 +3155,14 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				local DropFrame = Instance.new("Frame")
 				DropFrame.Name = groupName .. "_OptionGroup"
 				DropFrame.BackgroundTransparency = 1
-				DropFrame.Size = UDim2.new(1, 0, 0, 20)
-				DropFrame.ClipsDescendants = true
+				DropFrame.Size = UDim2.new(1, 0, 0, flat and 0 or 20)
+				DropFrame.ClipsDescendants = not flat
 				DropFrame.LayoutOrder = elementOrder
 				DropFrame.ZIndex = 34
 				DropFrame.Parent = SectionContent
+				if flat then
+					DropFrame.AutomaticSize = Enum.AutomaticSize.Y
+				end
 
 				local openForSearch
 				local groupSearchEntry
@@ -3236,13 +3241,16 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				OptionsFrame.Name = "OptionsFrame"
 				OptionsFrame.Parent = DropFrame
 				OptionsFrame.BackgroundColor3 = T.Window3
-				OptionsFrame.BackgroundTransparency = 0
+				OptionsFrame.BackgroundTransparency = flat and 1 or 0
 				OptionsFrame.BorderSizePixel = 0
-				OptionsFrame.Position = UDim2.fromOffset(3, 22)
+				OptionsFrame.Position = UDim2.fromOffset(3, flat and 0 or 22)
 				OptionsFrame.Size = UDim2.new(1, -6, 0, 0)
-				OptionsFrame.Visible = false
-				OptionsFrame.ClipsDescendants = true
+				OptionsFrame.Visible = flat
+				OptionsFrame.ClipsDescendants = not flat
 				OptionsFrame.ZIndex = 36
+				if flat then
+					OptionsFrame.AutomaticSize = Enum.AutomaticSize.Y
+				end
 
 				local OptionsFrameStroke = Instance.new("UIStroke")
 				OptionsFrameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -3250,6 +3258,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				OptionsFrameStroke.LineJoinMode = Enum.LineJoinMode.Round
 				OptionsFrameStroke.Thickness = 1
 				OptionsFrameStroke.Parent = OptionsFrame
+				OptionsFrameStroke.Visible = not flat
 
 				BindTheme(OptionsFrame, { BackgroundColor3 = "Window3" })
 				BindTheme(OptionsFrameStroke, { Color = "Stroke" })
@@ -3278,6 +3287,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				local dropdownState = {}
 
 				local function applyGroupSize()
+					if flat then return end
 					if isOpen then
 						OptionsFrame.Visible = true
 						local h = totalOptionsHeight + extraOptionsHeight
@@ -3302,12 +3312,13 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 
 				for i, opt in ipairs(normOptions) do
 					local t = opt.type
-					local hasToggle = (t == "toggle" or t == "toggleslider" or t == "togglesliderf")
+					local hasToggle = (t == "toggle" or t == "toggleslider" or t == "togglesliderf" or t == "toggledropdown")
 					local hasSlider = (t == "slider" or t == "sliderf" or t == "toggleslider" or t == "togglesliderf")
 					local isKeybind = (t == "keybind")
 					local isColorPicker = (t == "colorpicker")
 					local isButton = (t == "button")
-					local isDropdown = (t == "dropdown")
+					local isDropdown = (t == "dropdown" or t == "toggledropdown")
+					local isToggleDropdown = (t == "toggledropdown")
 					local isFloat   = (t == "sliderf" or t == "togglesliderf")
 					local decimals  = math.clamp(math.floor(opt.decimals or 0), 0, 10)
 					local fmt       = "%." .. tostring(decimals) .. "f"
@@ -3319,6 +3330,8 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						rowH = KEYBIND_ROW_H
 					elseif isButton then
 						rowH = BUTTON_ROW_H
+					elseif isToggleDropdown then
+						rowH = DROPDOWN_ROW_H
 					elseif isDropdown then
 						rowH = DROPDOWN_ROW_H
 					elseif hasToggle and hasSlider then
@@ -3584,7 +3597,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						rows[opt.name].getCPWindow = function() return cpWindowObj end
 						rows[opt.name].row = Row
 
-					elseif hasToggle then
+					elseif hasToggle and not isToggleDropdown then
 						local RowLabel = Instance.new("TextLabel")
 						RowLabel.BackgroundTransparency = 1
 						RowLabel.Font = Enum.Font.SourceSans
@@ -3935,8 +3948,8 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						DDButton.AnchorPoint = Vector2.new(1, 0.5)
 						DDButton.BackgroundColor3 = T.Button1
 						DDButton.Name = "DropdownButton"
-						DDButton.Position = UDim2.new(1, -6, 0.5, 0)
-						DDButton.Size = UDim2.new(0, 84, 0, 16)
+						DDButton.Position = UDim2.new(1, isToggleDropdown and -30 or -6, 0.5, 0)
+						DDButton.Size = UDim2.new(0, isToggleDropdown and 84 or 84, 0, 16)
 						DDButton.Font = Enum.Font.SourceSans
 						DDButton.Text = tostring(ddValue)
 						DDButton.TextColor3 = T.TextDim
@@ -3972,6 +3985,96 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						DDArrow.Parent = DDButton
 
 						BindTheme(DDArrow, { ImageColor3 = "Secondary" })
+
+						if isToggleDropdown then
+							local TogBtn = Instance.new("TextButton")
+							TogBtn.AnchorPoint = Vector2.new(1, 0)
+							TogBtn.BackgroundColor3 = T.Button1
+							TogBtn.Name = "Toggle"
+							TogBtn.Position = UDim2.new(1, -6, 0, 4)
+							TogBtn.Size = UDim2.fromOffset(16, 16)
+							TogBtn.Text = ""
+							TogBtn.AutoButtonColor = false
+							TogBtn.ZIndex = 38
+							TogBtn.Parent = Row
+
+							local TBCorner = Instance.new("UICorner")
+							TBCorner.CornerRadius = UDim.new(0, 2)
+							TBCorner.Parent = TogBtn
+
+							local TBStroke = Instance.new("UIStroke")
+							TBStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+							TBStroke.Color = T.Stroke
+							TBStroke.LineJoinMode = Enum.LineJoinMode.Round
+							TBStroke.Thickness = 1
+							TBStroke.Parent = TogBtn
+
+							BindTheme(TogBtn, { BackgroundColor3 = "Button1" })
+							BindTheme(TBStroke, { Color = "Stroke" })
+
+							local TogIcon = Instance.new("ImageLabel")
+							TogIcon.Active = false
+							TogIcon.BackgroundTransparency = 1
+							TogIcon.BorderSizePixel = 0
+							TogIcon.Image = "rbxassetid://9801456486"
+							TogIcon.ImageColor3 = T.Secondary
+							TogIcon.Name = "Icon"
+							TogIcon.Rotation = 360
+							TogIcon.Size = UDim2.fromScale(1, 1)
+							TogIcon.ZIndex = 39
+							TogIcon.Parent = TogBtn
+
+							local TogIconGrad = Instance.new("UIGradient")
+							TogIconGrad.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(200, 200, 200))
+							TogIconGrad.Rotation = 90
+							TogIconGrad.Parent = TogIcon
+
+							local function updateToggleVisual(state)
+								if state then
+									TogIcon.Image = "rbxassetid://9801457539"
+									TweenProperty(TogIcon, { Rotation = 0, ImageColor3 = T.Primary }, 0.3, 2)
+									TweenProperty(TogBtn, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+								else
+									TogIcon.Image = "rbxassetid://9801456486"
+									TweenProperty(TogIcon, { Rotation = 360, ImageColor3 = T.Secondary }, 0.3, 2)
+									TweenProperty(TogBtn, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+								end
+							end
+							updateToggleVisual(allStates[opt.name].toggleValue)
+							local optToggleName = opt.name
+							table.insert(toggleVisuals, function()
+								updateToggleVisual(allStates[optToggleName].toggleValue)
+							end)
+
+							TogBtn.MouseEnter:Connect(function()
+								if allStates[opt.name].toggleValue then
+									TweenProperty(TogBtn, { BackgroundColor3 = T.Button3 }, 0.2, 2)
+								else
+									TweenProperty(TogBtn, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+								end
+								TweenProperty(TBStroke, { Color = T.StrokeHover }, 0.2, 2)
+							end)
+							TogBtn.MouseLeave:Connect(function()
+								if allStates[opt.name].toggleValue then
+									TweenProperty(TogBtn, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+								else
+									TweenProperty(TogBtn, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+								end
+								TweenProperty(TBStroke, { Color = T.Stroke }, 0.2, 2)
+							end)
+
+							TogBtn.MouseButton1Click:Connect(function()
+								allStates[opt.name].toggleValue = not allStates[opt.name].toggleValue
+								updateToggleVisual(allStates[opt.name].toggleValue)
+								if callback then
+									callback(opt.name, allStates[opt.name].toggleValue, nil, allStates)
+								end
+							end)
+
+							rows[opt.name] = rows[opt.name] or {}
+							rows[opt.name].toggleBtn = TogBtn
+							rows[opt.name].updateToggleVisual = updateToggleVisual
+						end
 
 						local function buildOptionList()
 							if openList then openList:Destroy() end
@@ -4129,6 +4232,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				end
 
 				local function toggleOpen()
+					if flat then return end
 					isOpen = not isOpen
 					TweenProperty(ArrowIcon, { Rotation = isOpen and 180 or 0, ImageColor3 = isOpen and T.Primary or T.Secondary }, 0.2, 2)
 					if not isOpen then
@@ -4163,9 +4267,13 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				end)
 				MainButton.MouseButton1Click:Connect(toggleOpen)
 
+				if flat then
+					MainButton.Visible = false
+				end
+
 				local outsideConn
 				outsideConn = UserInputService.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 and isOpen then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 and isOpen and not flat then
 						local pos = input.Position
 						local fp = DropFrame.AbsolutePosition
 						local fs = DropFrame.AbsoluteSize
