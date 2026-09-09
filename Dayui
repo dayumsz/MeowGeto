@@ -3934,21 +3934,22 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						DDLabel.Font = Enum.Font.SourceSans
 						DDLabel.Name = "Label"
 						DDLabel.Position = UDim2.fromOffset(8, 0)
-						DDLabel.Size = UDim2.new(0.55, 0, 1, 0)
+						DDLabel.Size = UDim2.new(0.55, 0, 0, 28)
 						DDLabel.Text = opt.name
 						DDLabel.TextColor3 = T.TextPrimary
 						DDLabel.TextSize = 14
 						DDLabel.TextXAlignment = Enum.TextXAlignment.Left
+						DDLabel.TextYAlignment = Enum.TextYAlignment.Center
 						DDLabel.ZIndex = 38
 						DDLabel.Parent = Row
 
 						BindTheme(DDLabel, { TextColor3 = "TextPrimary" })
 
 						local DDButton = Instance.new("TextButton")
-						DDButton.AnchorPoint = Vector2.new(1, 0.5)
+						DDButton.AnchorPoint = Vector2.new(1, 0)
 						DDButton.BackgroundColor3 = T.Button1
 						DDButton.Name = "DropdownButton"
-						DDButton.Position = UDim2.new(1, isToggleDropdown and -30 or -6, 0.5, 0)
+						DDButton.Position = UDim2.new(1, isToggleDropdown and -30 or -6, 0, isToggleDropdown and 6 or 6)
 						DDButton.Size = UDim2.new(0, isToggleDropdown and 84 or 84, 0, 16)
 						DDButton.Font = Enum.Font.SourceSans
 						DDButton.Text = tostring(ddValue)
