@@ -3258,7 +3258,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				OptionsFrameStroke.LineJoinMode = Enum.LineJoinMode.Round
 				OptionsFrameStroke.Thickness = 1
 				OptionsFrameStroke.Parent = OptionsFrame
-				OptionsFrameStroke.Visible = not flat
+				OptionsFrameStroke.Enabled = not flat
 
 				BindTheme(OptionsFrame, { BackgroundColor3 = "Window3" })
 				BindTheme(OptionsFrameStroke, { Color = "Stroke" })
