@@ -2672,9 +2672,9 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					isOpen = not isOpen
 					if isOpen then
 						local optionCount = #options > 0 and #options or 1
-						local totalHeight = optionCount * 20 + (optionCount - 1) * 4 + 8
+						local totalHeight = optionCount * 20
 						OptionsFrame.Visible = true
-						TweenProperty(DropFrame, { Size = UDim2.new(1, 0, 0, 20 + totalHeight + 6) }, 0.2, 2)
+						TweenProperty(DropFrame, { Size = UDim2.new(1, 0, 0, 20 + totalHeight + 2) }, 0.2, 2)
 						TweenProperty(OptionsFrame, { Size = UDim2.new(1, -6, 0, totalHeight) }, 0.2, 2)
 					else
 						TweenProperty(DropFrame, { Size = UDim2.new(1, 0, 0, 20) }, 0.2, 2)
