@@ -139,12 +139,7 @@ local UpdateLogs = {
 }
 local LATEST_LOG_VERSION = UpdateLogs[1].Version
 
-local ChangeTypes = {
-	Added   = { Tag = "+ ADDED",   Color = "4ADE80" },
-	Changed = { Tag = "~ CHANGED", Color = "FBBF24" },
-	Removed = { Tag = "- REMOVED", Color = "F87171" },
-	Fixed   = { Tag = "! FIXED",   Color = "60A5FA" },
-}
+local ChangeGroupOrder = { "Added", "Changed", "Fixed", "Removed" }
 
 local windowRoles = { "Primary", "Secondary", "Window1", "Window2", "Window3", "Button1", "Button2", "Button3", "Stroke", "StrokeHover", "TextPrimary", "TextDim", "SchemeColor" }
 local customThemeOrder = {}
@@ -2204,14 +2199,14 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				Hdr.LayoutOrder = nextOrder
 				Hdr.Size = UDim2.new(1, 0, 0, 15)
 				Hdr.Text = srcLabel
-				Hdr.TextColor3 = T.Primary
+				Hdr.TextColor3 = T.TextPrimary
 				Hdr.TextSize = 13
 				Hdr.TextXAlignment = Enum.TextXAlignment.Left
 				Hdr.TextYAlignment = Enum.TextYAlignment.Center
 				Hdr.ZIndex = 603
 				Hdr.Parent = Row
 
-				BindTheme(Hdr, { TextColor3 = "Primary" })
+				BindTheme(Hdr, { TextColor3 = "TextPrimary" })
 
 				if data.Title then
 					nextOrder = nextOrder + 1
@@ -2233,32 +2228,54 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				end
 
 				if data.Notes then
-					for _, note in ipairs(data.Notes) do
-						nextOrder = nextOrder + 1
-						local noteType = "Added"
-						local noteText = note
-						if type(note) == "table" then
-							noteType = tostring(note.Type or "Added")
-							noteText = tostring(note.Text or note[1] or "")
+					for _, groupType in ipairs(ChangeGroupOrder) do
+						local groupNotes = {}
+						for _, note in ipairs(data.Notes) do
+							local noteType = "Added"
+							if type(note) == "table" then noteType = tostring(note.Type or "Added") end
+							if noteType == groupType then
+								local noteText = note
+								if type(note) == "table" then noteText = tostring(note.Text or note[1] or "") end
+								table.insert(groupNotes, noteText)
+							end
 						end
-						local ct = ChangeTypes[noteType] or ChangeTypes.Added
-						local Note = Instance.new("TextLabel")
-						Note.BackgroundTransparency = 1
-						Note.Font = Enum.Font.SourceSans
-						Note.LayoutOrder = nextOrder
-						Note.Size = UDim2.new(1, 0, 0, 14)
-						Note.AutomaticSize = Enum.AutomaticSize.Y
-						Note.RichText = true
-						Note.Text = string.format("<font color='#%s'><b>%s</b></font>  %s", ct.Color, ct.Tag, noteText)
-						Note.TextColor3 = T.TextDim
-						Note.TextSize = 13
-						Note.TextWrapped = true
-						Note.TextXAlignment = Enum.TextXAlignment.Left
-						Note.TextYAlignment = Enum.TextYAlignment.Top
-						Note.ZIndex = 603
-						Note.Parent = Row
+						if #groupNotes > 0 then
+							nextOrder = nextOrder + 1
+							local GroupHdr = Instance.new("TextLabel")
+							GroupHdr.BackgroundTransparency = 1
+							GroupHdr.Font = Enum.Font.SourceSansBold
+							GroupHdr.LayoutOrder = nextOrder
+							GroupHdr.Size = UDim2.new(1, 0, 0, 15)
+							GroupHdr.Text = groupType
+							GroupHdr.TextColor3 = T.TextPrimary
+							GroupHdr.TextSize = 13
+							GroupHdr.TextXAlignment = Enum.TextXAlignment.Left
+							GroupHdr.TextYAlignment = Enum.TextYAlignment.Center
+							GroupHdr.ZIndex = 603
+							GroupHdr.Parent = Row
 
-						BindTheme(Note, { TextColor3 = "TextDim" })
+							BindTheme(GroupHdr, { TextColor3 = "TextPrimary" })
+
+							for _, noteText in ipairs(groupNotes) do
+								nextOrder = nextOrder + 1
+								local Note = Instance.new("TextLabel")
+								Note.BackgroundTransparency = 1
+								Note.Font = Enum.Font.SourceSans
+								Note.LayoutOrder = nextOrder
+								Note.Size = UDim2.new(1, 0, 0, 14)
+								Note.AutomaticSize = Enum.AutomaticSize.Y
+								Note.Text = "- " .. tostring(noteText)
+								Note.TextColor3 = T.TextDim
+								Note.TextSize = 13
+								Note.TextWrapped = true
+								Note.TextXAlignment = Enum.TextXAlignment.Left
+								Note.TextYAlignment = Enum.TextYAlignment.Top
+								Note.ZIndex = 603
+								Note.Parent = Row
+
+								BindTheme(Note, { TextColor3 = "TextDim" })
+							end
+						end
 					end
 				end
 			end
