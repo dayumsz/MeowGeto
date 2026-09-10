@@ -5050,6 +5050,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 
 				local Panels = {}
 				local TabButtons = {}
+				local TabStrokes = {}
 				local activeIndex = 1
 
 				for i, tabDef in ipairs(tabs) do
@@ -5058,11 +5059,11 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					local Btn = Instance.new("TextButton")
 					Btn.Name = tabName .. "_TabButton"
 					Btn.Parent = TabBar
-					Btn.BackgroundColor3 = (i == 1) and T.Primary or T.Button1
+					Btn.BackgroundColor3 = (i == 1) and T.Button3 or T.Button1
 					Btn.Size = UDim2.new(0, 80, 0, 16)
 					Btn.Font = Enum.Font.SourceSans
 					Btn.Text = tabName
-					Btn.TextColor3 = (i == 1) and T.TextPrimary or T.TextDim
+					Btn.TextColor3 = (i == 1) and T.Primary or T.TextPrimary
 					Btn.TextSize = 13
 					Btn.AutoButtonColor = false
 					Btn.LayoutOrder = i
@@ -5072,8 +5073,29 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					BtnCorner.CornerRadius = UDim.new(0, 2)
 					BtnCorner.Parent = Btn
 
-					BindTheme(Btn, { BackgroundColor3 = (i == 1) and "Primary" or "Button1", TextColor3 = (i == 1) and "TextPrimary" or "TextDim" })
+					local BtnStroke = Instance.new("UIStroke")
+					BtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+					BtnStroke.Color = T.Stroke
+					BtnStroke.LineJoinMode = Enum.LineJoinMode.Round
+					BtnStroke.Thickness = 1
+					BtnStroke.Parent = Btn
+
+					BindTheme(Btn, { BackgroundColor3 = (i == 1) and "Button3" or "Button1", TextColor3 = (i == 1) and "Primary" or "TextPrimary" })
+					BindTheme(BtnStroke, { Color = "Stroke" })
 					TabButtons[i] = Btn
+					TabStrokes[i] = BtnStroke
+
+					Btn.MouseEnter:Connect(function()
+						if activeIndex == i then return end
+						TweenProperty(Btn, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+						TweenProperty(BtnStroke, { Color = T.StrokeHover }, 0.2, 2)
+					end)
+
+					Btn.MouseLeave:Connect(function()
+						if activeIndex == i then return end
+						TweenProperty(Btn, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+						TweenProperty(BtnStroke, { Color = T.Stroke }, 0.2, 2)
+					end)
 
 					local Panel = Instance.new("Frame")
 					Panel.Name = tabName .. "_Panel"
@@ -5104,9 +5126,12 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						if activeIndex == i then return end
 						Panels[activeIndex].Visible = false
 						local prev = TabButtons[activeIndex]
-TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextDim }, 0.15, 2)
+						local prevStroke = TabStrokes[activeIndex]
+						TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextPrimary }, 0.15, 2)
+						TweenProperty(prevStroke, { Color = T.Stroke }, 0.15, 2)
 						Panels[i].Visible = true
-						TweenProperty(Btn, { BackgroundColor3 = T.Primary, TextColor3 = T.TextPrimary }, 0.15, 2)
+						TweenProperty(Btn, { BackgroundColor3 = T.Button3, TextColor3 = T.Primary }, 0.15, 2)
+						TweenProperty(BtnStroke, { Color = T.StrokeHover }, 0.15, 2)
 						activeIndex = i
 					end)
 				end
@@ -5161,9 +5186,12 @@ TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextDim }, 0.
 						if activeIndex == i then return end
 						Panels[activeIndex].Visible = false
 						local prev = TabButtons[activeIndex]
-						TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextDim }, 0.15, 2)
+						local prevStroke = TabStrokes[activeIndex]
+						TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextPrimary }, 0.15, 2)
+						TweenProperty(prevStroke, { Color = T.Stroke }, 0.15, 2)
 						Panels[i].Visible = true
-						TweenProperty(TabButtons[i], { BackgroundColor3 = T.Primary, TextColor3 = T.TextPrimary }, 0.15, 2)
+						TweenProperty(TabButtons[i], { BackgroundColor3 = T.Button3, TextColor3 = T.Primary }, 0.15, 2)
+						TweenProperty(TabStrokes[i], { Color = T.StrokeHover }, 0.15, 2)
 						activeIndex = i
 					end,
 				}
