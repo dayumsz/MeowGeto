@@ -116,31 +116,35 @@ local UpdateLogs = {
 		Lib = {
 			Title = "Dayui Library",
 			Notes = {
-				"Draggable window with header search and quick keybind.",
-				"9 element types: Button, Toggle, Slider, Dropdown, Color Picker, TextBox, Keybind, OptionGroup and SubGroup.",
-				"17 built-in themes + custom themes with a live theme editor.",
-				"Save system with per-config saves and a full Config tab.",
-				"Notifications, confirmation dialogs and built-in error handling.",
-				"NEW: Update Logs window (Logs button in the header) that opens automatically on every new version.",
+				{ Type = "Added", Text = "Update Logs window, opened with the Logs button in the header." },
+				{ Type = "Added", Text = "Changelog popup that opens automatically on every new version." },
+				{ Type = "Added", Text = "Colored categories on every change: + Added, ~ Changed, - Removed, ! Fixed." },
+				{ Type = "Changed", Text = "Library and script changes are now shown as separate blocks." },
+				{ Type = "Fixed", Text = "The Logs button now opens the window reliably from any flow." },
 			},
 		},
 		Script = {
 			Title = "Aero Hub",
 			Notes = {
-				"Player ESP: name / level / guild / distance, boxes and segmented bars (HP, Stomach, Water, Ether, Posture, Blood, Armor, Sanity).",
-				"Mob ESP with highlights and distance-based visibility.",
-				"Loot chest ESP that hides once the chest is opened.",
-				"Proximity player list with click-to-spectate.",
-				"Removals: No Fall, No Fog and Chat.",
-				"Movement: Noclip and Fly.",
-				"Combat: Void Mob and Void Titus.",
-				"Teleports with loop mode.",
-				"Config saving for every option.",
+				{ Type = "Added", Text = "Player ESP: labels (name / level / guild / distance), boxes and 8 segmented stat bars." },
+				{ Type = "Added", Text = "Mob ESP with highlights and distance-based visibility." },
+				{ Type = "Added", Text = "Loot chest ESP that hides as soon as a chest is opened." },
+				{ Type = "Added", Text = "Proximity player list with click-to-spectate." },
+				{ Type = "Added", Text = "Removals, Noclip, Fly, Void Mob, Void Titus and Teleports." },
+				{ Type = "Changed", Text = "Bar rendering now reacts smoothly to stat changes." },
+				{ Type = "Fixed", Text = "Spectate resets the camera correctly when disabled." },
 			},
 		},
 	},
 }
 local LATEST_LOG_VERSION = UpdateLogs[1].Version
+
+local ChangeTypes = {
+	Added   = { Tag = "+ ADDED",   Color = "4ADE80" },
+	Changed = { Tag = "~ CHANGED", Color = "FBBF24" },
+	Removed = { Tag = "- REMOVED", Color = "F87171" },
+	Fixed   = { Tag = "! FIXED",   Color = "60A5FA" },
+}
 
 local windowRoles = { "Primary", "Secondary", "Window1", "Window2", "Window3", "Button1", "Button2", "Button3", "Stroke", "StrokeHover", "TextPrimary", "TextDim", "SchemeColor" }
 local customThemeOrder = {}
@@ -2231,13 +2235,21 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				if data.Notes then
 					for _, note in ipairs(data.Notes) do
 						nextOrder = nextOrder + 1
+						local noteType = "Added"
+						local noteText = note
+						if type(note) == "table" then
+							noteType = tostring(note.Type or "Added")
+							noteText = tostring(note.Text or note[1] or "")
+						end
+						local ct = ChangeTypes[noteType] or ChangeTypes.Added
 						local Note = Instance.new("TextLabel")
 						Note.BackgroundTransparency = 1
 						Note.Font = Enum.Font.SourceSans
 						Note.LayoutOrder = nextOrder
 						Note.Size = UDim2.new(1, 0, 0, 14)
 						Note.AutomaticSize = Enum.AutomaticSize.Y
-						Note.Text = "- " .. tostring(note)
+						Note.RichText = true
+						Note.Text = string.format("<font color='#%s'><b>%s</b></font>  %s", ct.Color, ct.Tag, noteText)
 						Note.TextColor3 = T.TextDim
 						Note.TextSize = 13
 						Note.TextWrapped = true
