@@ -109,6 +109,39 @@ end
 Themes.DarkTheme = Themes.Dark
 Themes.DefaultTheme = Themes.Default
 
+local UpdateLogs = {
+	{
+		Version = "v1.1.0",
+		Date = "Sep 10, 2026",
+		Lib = {
+			Title = "Dayui Library",
+			Notes = {
+				"Draggable window with header search and quick keybind.",
+				"9 element types: Button, Toggle, Slider, Dropdown, Color Picker, TextBox, Keybind, OptionGroup and SubGroup.",
+				"17 built-in themes + custom themes with a live theme editor.",
+				"Save system with per-config saves and a full Config tab.",
+				"Notifications, confirmation dialogs and built-in error handling.",
+				"NEW: Update Logs window (Logs button in the header) that opens automatically on every new version.",
+			},
+		},
+		Script = {
+			Title = "Aero Hub",
+			Notes = {
+				"Player ESP: name / level / guild / distance, boxes and segmented bars (HP, Stomach, Water, Ether, Posture, Blood, Armor, Sanity).",
+				"Mob ESP with highlights and distance-based visibility.",
+				"Loot chest ESP that hides once the chest is opened.",
+				"Proximity player list with click-to-spectate.",
+				"Removals: No Fall, No Fog and Chat.",
+				"Movement: Noclip and Fly.",
+				"Combat: Void Mob and Void Titus.",
+				"Teleports with loop mode.",
+				"Config saving for every option.",
+			},
+		},
+	},
+}
+local LATEST_LOG_VERSION = UpdateLogs[1].Version
+
 local windowRoles = { "Primary", "Secondary", "Window1", "Window2", "Window3", "Button1", "Button2", "Button3", "Stroke", "StrokeHover", "TextPrimary", "TextDim", "SchemeColor" }
 local customThemeOrder = {}
 local THEMES_FOLDER = SAVE_FOLDER .. "/themes"
@@ -1427,6 +1460,50 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 	BindTheme(SearchBox, { BackgroundColor3 = "Button1", TextColor3 = "TextPrimary", PlaceholderColor3 = "TextDim" })
 	BindTheme(SearchStroke, { Color = "Stroke" })
 
+	local OpenUpdateLogs
+
+	local LogsBtn = Instance.new("TextButton")
+	LogsBtn.Name = "UpdateLogsBtn"
+	LogsBtn.AnchorPoint = Vector2.new(1, 0.5)
+	LogsBtn.Position = UDim2.new(1, -172, 0.5, 0)
+	LogsBtn.Size = UDim2.new(0, 60, 0, 16)
+	LogsBtn.BackgroundColor3 = T.Button1
+	LogsBtn.BorderSizePixel = 0
+	LogsBtn.Font = Enum.Font.SourceSans
+	LogsBtn.Text = "Logs"
+	LogsBtn.TextColor3 = T.TextDim
+	LogsBtn.TextSize = 13
+	LogsBtn.TextYAlignment = Enum.TextYAlignment.Center
+	LogsBtn.AutoButtonColor = false
+	LogsBtn.ZIndex = 52
+	LogsBtn.Parent = Header
+
+	local LogsBtnCorner = Instance.new("UICorner")
+	LogsBtnCorner.CornerRadius = UDim.new(0, 2)
+	LogsBtnCorner.Parent = LogsBtn
+
+	local LogsBtnStroke = Instance.new("UIStroke")
+	LogsBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	LogsBtnStroke.Color = T.Stroke
+	LogsBtnStroke.LineJoinMode = Enum.LineJoinMode.Round
+	LogsBtnStroke.Thickness = 1
+	LogsBtnStroke.Parent = LogsBtn
+
+	BindTheme(LogsBtn, { BackgroundColor3 = "Button1", TextColor3 = "TextDim" })
+	BindTheme(LogsBtnStroke, { Color = "Stroke" })
+
+	LogsBtn.MouseEnter:Connect(function()
+		TweenProperty(LogsBtn, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+		TweenProperty(LogsBtnStroke, { Color = T.StrokeHover }, 0.2, 2)
+	end)
+	LogsBtn.MouseLeave:Connect(function()
+		TweenProperty(LogsBtn, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+		TweenProperty(LogsBtnStroke, { Color = T.Stroke }, 0.2, 2)
+	end)
+	LogsBtn.MouseButton1Click:Connect(function()
+		OpenUpdateLogs()
+	end)
+
 	local function RegisterSearch(text, obj, tab, isSection, content, metadata)
 		metadata = metadata or {}
 		local entry = {
@@ -1706,7 +1783,11 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		local abs = SearchBox.AbsolutePosition
 		local bx = SearchBox.AbsoluteSize.X
 		local by = SearchBox.AbsoluteSize.Y
-		return m.X >= abs.X and m.X <= abs.X + bx and m.Y >= abs.Y and m.Y <= abs.Y + by
+		if m.X >= abs.X and m.X <= abs.X + bx and m.Y >= abs.Y and m.Y <= abs.Y + by then return true end
+		local lAbs = LogsBtn.AbsolutePosition
+		local lx = LogsBtn.AbsoluteSize.X
+		local ly = LogsBtn.AbsoluteSize.Y
+		return m.X >= lAbs.X and m.X <= lAbs.X + lx and m.Y >= lAbs.Y and m.Y <= lAbs.Y + ly
 	end)
 
 	task.spawn(function()
@@ -1883,6 +1964,310 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 		end)
 
 		return Overlay
+	end
+
+	local updateLogsOpen = false
+	local updateLogsWindow = nil
+
+	OpenUpdateLogs = function()
+		if updateLogsOpen then
+			if updateLogsWindow then pcall(function() updateLogsWindow:Destroy() end) end
+			updateLogsWindow = nil
+			updateLogsOpen = false
+			return
+		end
+		updateLogsOpen = true
+		SaveData("changelog", { lastSeen = LATEST_LOG_VERSION })
+
+		local Window = Instance.new("Frame")
+		Window.Name = "UpdateLogsWindow"
+		Window.BackgroundColor3 = T.Window2
+		Window.BorderSizePixel = 0
+		Window.Position = UDim2.new(0.5, -180, 0.5, -160)
+		Window.Size = UDim2.fromOffset(360, 320)
+		Window.ZIndex = 600
+		Window.Parent = ScreenGui
+
+		BindTheme(Window, { BackgroundColor3 = "Window2" })
+
+		local WindowStroke = Instance.new("UIStroke")
+		WindowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		WindowStroke.Color = T.Stroke
+		WindowStroke.LineJoinMode = Enum.LineJoinMode.Round
+		WindowStroke.Thickness = 1
+		WindowStroke.Parent = Window
+
+		BindTheme(WindowStroke, { Color = "Stroke" })
+
+		local WindowShadow = Instance.new("ImageLabel")
+		WindowShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+		WindowShadow.BackgroundTransparency = 1
+		WindowShadow.BorderSizePixel = 0
+		WindowShadow.Image = "rbxassetid://7331400934"
+		WindowShadow.ImageColor3 = Color3.fromRGB(0, 0, 5)
+		WindowShadow.Position = UDim2.fromScale(0.5, 0.5)
+		WindowShadow.ScaleType = Enum.ScaleType.Slice
+		WindowShadow.Size = UDim2.new(1, 60, 1, 60)
+		WindowShadow.SliceCenter = Rect.new(40, 40, 260, 260)
+		WindowShadow.ZIndex = 599
+		WindowShadow.Parent = Window
+
+		local WindowHeader = Instance.new("Frame")
+		WindowHeader.Name = "Header"
+		WindowHeader.BackgroundColor3 = T.Window1
+		WindowHeader.BorderSizePixel = 0
+		WindowHeader.Size = UDim2.new(1, 0, 0, 26)
+		WindowHeader.ClipsDescendants = true
+		WindowHeader.ZIndex = 601
+		WindowHeader.Parent = Window
+
+		BindTheme(WindowHeader, { BackgroundColor3 = "Window1" })
+
+		local WindowHeaderStroke = Instance.new("UIStroke")
+		WindowHeaderStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		WindowHeaderStroke.Color = T.Stroke
+		WindowHeaderStroke.LineJoinMode = Enum.LineJoinMode.Round
+		WindowHeaderStroke.Thickness = 1
+		WindowHeaderStroke.Parent = WindowHeader
+
+		BindTheme(WindowHeaderStroke, { Color = "Stroke" })
+
+		local WindowTitle = Instance.new("TextLabel")
+		WindowTitle.BackgroundTransparency = 1
+		WindowTitle.Font = Enum.Font.RobotoCondensed
+		WindowTitle.Position = UDim2.fromOffset(8, 0)
+		WindowTitle.Size = UDim2.new(1, -50, 1, 0)
+		WindowTitle.Text = "Update Logs"
+		WindowTitle.TextColor3 = T.TextPrimary
+		WindowTitle.TextSize = 16
+		WindowTitle.TextXAlignment = Enum.TextXAlignment.Left
+		WindowTitle.TextYAlignment = Enum.TextYAlignment.Center
+		WindowTitle.ZIndex = 602
+		WindowTitle.Parent = WindowHeader
+
+		BindTheme(WindowTitle, { TextColor3 = "TextPrimary" })
+
+		local WindowClose = Instance.new("TextButton")
+		WindowClose.AnchorPoint = Vector2.new(1, 0.5)
+		WindowClose.BackgroundColor3 = T.Button1
+		WindowClose.BorderSizePixel = 0
+		WindowClose.Position = UDim2.new(1, -3, 0.5, 0)
+		WindowClose.Size = UDim2.fromOffset(18, 18)
+		WindowClose.Font = Enum.Font.SourceSans
+		WindowClose.Text = "X"
+		WindowClose.TextColor3 = T.TextDim
+		WindowClose.TextSize = 13
+		WindowClose.TextYAlignment = Enum.TextYAlignment.Center
+		WindowClose.AutoButtonColor = false
+		WindowClose.ZIndex = 602
+		WindowClose.Parent = WindowHeader
+
+		BindTheme(WindowClose, { BackgroundColor3 = "Button1", TextColor3 = "TextDim" })
+
+		local WindowCloseCorner = Instance.new("UICorner")
+		WindowCloseCorner.CornerRadius = UDim.new(0, 2)
+		WindowCloseCorner.Parent = WindowClose
+
+		local WindowCloseStroke = Instance.new("UIStroke")
+		WindowCloseStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		WindowCloseStroke.Color = T.Stroke
+		WindowCloseStroke.LineJoinMode = Enum.LineJoinMode.Round
+		WindowCloseStroke.Thickness = 1
+		WindowCloseStroke.Parent = WindowClose
+
+		BindTheme(WindowCloseStroke, { Color = "Stroke" })
+
+		local function CloseWindow()
+			updateLogsOpen = false
+			pcall(function() Window:Destroy() end)
+			updateLogsWindow = nil
+		end
+
+		WindowClose.MouseEnter:Connect(function()
+			TweenProperty(WindowClose, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+			TweenProperty(WindowCloseStroke, { Color = T.StrokeHover }, 0.2, 2)
+		end)
+		WindowClose.MouseLeave:Connect(function()
+			TweenProperty(WindowClose, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+			TweenProperty(WindowCloseStroke, { Color = T.Stroke }, 0.2, 2)
+		end)
+		WindowClose.MouseButton1Click:Connect(CloseWindow)
+
+		SetupDragging(WindowHeader, Window)
+
+		local LogsContent = Instance.new("ScrollingFrame")
+		LogsContent.Name = "Content"
+		LogsContent.BackgroundTransparency = 1
+		LogsContent.BorderSizePixel = 0
+		LogsContent.Position = UDim2.fromOffset(0, 26)
+		LogsContent.Size = UDim2.new(1, 0, 1, -26)
+		LogsContent.ScrollBarThickness = 1
+		LogsContent.ScrollBarImageColor3 = T.Primary
+		LogsContent.ScrollBarImageTransparency = 0.9
+		LogsContent.BottomImage = "rbxassetid://9416839567"
+		LogsContent.MidImage = "rbxassetid://9416839567"
+		LogsContent.TopImage = "rbxassetid://9416839567"
+		LogsContent.CanvasSize = UDim2.fromOffset(0, 0)
+		LogsContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		LogsContent.ZIndex = 601
+		LogsContent.Parent = Window
+
+		BindTheme(LogsContent, { ScrollBarImageColor3 = "Primary" })
+
+		local LogsList = Instance.new("UIListLayout")
+		LogsList.Parent = LogsContent
+		LogsList.Padding = UDim.new(0, 8)
+		LogsList.FillDirection = Enum.FillDirection.Vertical
+		LogsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		LogsList.SortOrder = Enum.SortOrder.LayoutOrder
+
+		local LogsPad = Instance.new("UIPadding")
+		LogsPad.PaddingTop = UDim.new(0, 6)
+		LogsPad.PaddingBottom = UDim.new(0, 6)
+		LogsPad.Parent = LogsContent
+
+		for i, entry in ipairs(UpdateLogs) do
+			local Row = Instance.new("Frame")
+			Row.Name = "Entry_" .. i
+			Row.BackgroundTransparency = 1
+			Row.BorderSizePixel = 0
+			Row.Size = UDim2.new(1, -10, 0, 0)
+			Row.AutomaticSize = Enum.AutomaticSize.Y
+			Row.LayoutOrder = i
+			Row.ZIndex = 602
+			Row.Parent = LogsContent
+
+			local RowList = Instance.new("UIListLayout")
+			RowList.Parent = Row
+			RowList.Padding = UDim.new(0, 2)
+			RowList.FillDirection = Enum.FillDirection.Vertical
+			RowList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+			RowList.SortOrder = Enum.SortOrder.LayoutOrder
+
+			local RowPad = Instance.new("UIPadding")
+			RowPad.PaddingLeft = UDim.new(0, 6)
+			RowPad.PaddingRight = UDim.new(0, 6)
+			RowPad.Parent = Row
+
+			local HeadLine = Instance.new("Frame")
+			HeadLine.BackgroundTransparency = 1
+			HeadLine.Size = UDim2.new(1, 0, 0, 18)
+			HeadLine.LayoutOrder = 1
+			HeadLine.ZIndex = 603
+			HeadLine.Parent = Row
+
+			local Version = Instance.new("TextLabel")
+			Version.BackgroundTransparency = 1
+			Version.Font = Enum.Font.RobotoCondensed
+			Version.Position = UDim2.fromOffset(0, 0)
+			Version.Size = UDim2.new(0.62, 0, 1, 0)
+			Version.Text = entry.Version
+			Version.TextColor3 = T.Primary
+			Version.TextSize = 16
+			Version.TextXAlignment = Enum.TextXAlignment.Left
+			Version.TextYAlignment = Enum.TextYAlignment.Center
+			Version.ZIndex = 603
+			Version.Parent = HeadLine
+
+			BindTheme(Version, { TextColor3 = "Primary" })
+
+			local Date = Instance.new("TextLabel")
+			Date.BackgroundTransparency = 1
+			Date.Font = Enum.Font.SourceSans
+			Date.Position = UDim2.new(0.62, 0, 0, 0)
+			Date.Size = UDim2.new(0.38, 0, 1, 0)
+			Date.Text = tostring(entry.Date or "")
+			Date.TextColor3 = T.TextDim
+			Date.TextSize = 12
+			Date.TextXAlignment = Enum.TextXAlignment.Right
+			Date.TextYAlignment = Enum.TextYAlignment.Center
+			Date.ZIndex = 603
+			Date.Parent = HeadLine
+
+			BindTheme(Date, { TextColor3 = "TextDim" })
+
+			local nextOrder = 1
+
+			local function RenderSource(srcLabel, data)
+				if not data then return end
+				local hasContent = data.Title or (data.Notes and #data.Notes > 0)
+				if not hasContent then return end
+
+				nextOrder = nextOrder + 1
+				local Hdr = Instance.new("TextLabel")
+				Hdr.BackgroundTransparency = 1
+				Hdr.Font = Enum.Font.SourceSansBold
+				Hdr.LayoutOrder = nextOrder
+				Hdr.Size = UDim2.new(1, 0, 0, 15)
+				Hdr.Text = srcLabel
+				Hdr.TextColor3 = T.Primary
+				Hdr.TextSize = 13
+				Hdr.TextXAlignment = Enum.TextXAlignment.Left
+				Hdr.TextYAlignment = Enum.TextYAlignment.Center
+				Hdr.ZIndex = 603
+				Hdr.Parent = Row
+
+				BindTheme(Hdr, { TextColor3 = "Primary" })
+
+				if data.Title then
+					nextOrder = nextOrder + 1
+					local Subtitle = Instance.new("TextLabel")
+					Subtitle.BackgroundTransparency = 1
+					Subtitle.Font = Enum.Font.SourceSans
+					Subtitle.LayoutOrder = nextOrder
+					Subtitle.Size = UDim2.new(1, 0, 0, 15)
+					Subtitle.Text = tostring(data.Title)
+					Subtitle.TextColor3 = T.TextPrimary
+					Subtitle.TextSize = 14
+					Subtitle.TextTruncate = Enum.TextTruncate.AtEnd
+					Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+					Subtitle.TextYAlignment = Enum.TextYAlignment.Center
+					Subtitle.ZIndex = 603
+					Subtitle.Parent = Row
+
+					BindTheme(Subtitle, { TextColor3 = "TextPrimary" })
+				end
+
+				if data.Notes then
+					for _, note in ipairs(data.Notes) do
+						nextOrder = nextOrder + 1
+						local Note = Instance.new("TextLabel")
+						Note.BackgroundTransparency = 1
+						Note.Font = Enum.Font.SourceSans
+						Note.LayoutOrder = nextOrder
+						Note.Size = UDim2.new(1, 0, 0, 14)
+						Note.AutomaticSize = Enum.AutomaticSize.Y
+						Note.Text = "- " .. tostring(note)
+						Note.TextColor3 = T.TextDim
+						Note.TextSize = 13
+						Note.TextWrapped = true
+						Note.TextXAlignment = Enum.TextXAlignment.Left
+						Note.TextYAlignment = Enum.TextYAlignment.Top
+						Note.ZIndex = 603
+						Note.Parent = Row
+
+						BindTheme(Note, { TextColor3 = "TextDim" })
+					end
+				end
+			end
+
+			RenderSource("Lib", entry.Lib)
+			RenderSource("Script", entry.Script)
+
+			if i < #UpdateLogs then
+				nextOrder = nextOrder + 1
+				local Sep = Instance.new("Frame")
+				Sep.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				Sep.BackgroundTransparency = 0.9
+				Sep.BorderSizePixel = 0
+				Sep.Size = UDim2.new(1, -12, 0, 1)
+				Sep.LayoutOrder = nextOrder
+				Sep.ZIndex = 603
+				Sep.Parent = Row
+			end
+		end
+
+		updateLogsWindow = Window
 	end
 
 	local function CreateTab(tabName)
@@ -5063,6 +5448,16 @@ TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextDim }, 0.
 		end)
 	end
 
+	task.spawn(function()
+		task.wait(0.5)
+		if ScreenGui and ScreenGui.Parent then
+			local seen = LoadData("changelog")
+			if not (seen and seen.lastSeen == LATEST_LOG_VERSION) then
+				OpenUpdateLogs()
+			end
+		end
+	end)
+
 	return {
 		AddTab = CreateTab,
 		SaveManager = saveManager,
@@ -5098,6 +5493,7 @@ TweenProperty(prev, { BackgroundColor3 = T.Button1, TextColor3 = T.TextDim }, 0.
 				Main.Visible = true
 			end
 		end,
+		OpenUpdateLogs = OpenUpdateLogs,
 	}
 end
 
