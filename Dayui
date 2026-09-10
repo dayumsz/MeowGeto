@@ -123,20 +123,16 @@ local UpdateLogs = {
 				{ Type = "Fixed", Text = "The Logs button now opens the window reliably from any flow." },
 			},
 		},
-		Script = {
-			Title = "Aero Hub",
-			Notes = {
-				{ Type = "Added", Text = "Player ESP: labels (name / level / guild / distance), boxes and 8 segmented stat bars." },
-				{ Type = "Added", Text = "Mob ESP with highlights and distance-based visibility." },
-				{ Type = "Added", Text = "Loot chest ESP that hides as soon as a chest is opened." },
-				{ Type = "Added", Text = "Proximity player list with click-to-spectate." },
-				{ Type = "Added", Text = "Removals, Noclip, Fly, Void Mob, Void Titus and Teleports." },
-				{ Type = "Changed", Text = "Bar rendering now reacts smoothly to stat changes." },
-				{ Type = "Fixed", Text = "Spectate resets the camera correctly when disabled." },
-			},
-		},
 	},
 }
+local ScriptLogs = {}
+
+local function PickLatestVersion(A, B)
+	local NA = A and tostring(A) or ""
+	local NB = B and tostring(B) or ""
+	return (NA >= NB) and A or B
+end
+
 local LATEST_LOG_VERSION = UpdateLogs[1].Version
 
 local ChangeGroupOrder = { "Added", "Changed", "Fixed", "Removed" }
@@ -2146,7 +2142,9 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 			Pad.PaddingBottom = UDim.new(0, 6)
 			Pad.Parent = Content
 
-			for i, entry in ipairs(UpdateLogs) do
+			local sourceList = (sourceKey == "Lib") and UpdateLogs or ScriptLogs
+
+			for i, entry in ipairs(sourceList) do
 				local data = entry[sourceKey]
 				local hasContent = data and (data.Title or (data.Notes and #data.Notes > 0))
 				if hasContent then
@@ -2282,7 +2280,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 						end
 					end
 
-					if i < #UpdateLogs then
+					if i < #sourceList then
 						nextOrder = nextOrder + 1
 						local Sep = Instance.new("Frame")
 						Sep.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -5633,6 +5631,27 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 			end
 		end,
 		OpenUpdateLogs = OpenUpdateLogs,
+		SetScriptLogs = function(logs)
+			if type(logs) ~= "table" then return end
+			local oldV = LATEST_LOG_VERSION
+			ScriptLogs = logs
+			local V = UpdateLogs[1].Version
+			if type(logs[1]) == "table" and logs[1].Version then
+				V = PickLatestVersion(V, tostring(logs[1].Version))
+			end
+			LATEST_LOG_VERSION = V
+			if V ~= oldV then
+				task.spawn(function()
+					task.wait(0.5)
+					if ScreenGui and ScreenGui.Parent and not updateLogsOpen then
+						local seen = LoadData("changelog")
+						if not (seen and seen.lastSeen == LATEST_LOG_VERSION) then
+							OpenUpdateLogs()
+						end
+					end
+				end)
+			end
+		end,
 	}
 end
 
