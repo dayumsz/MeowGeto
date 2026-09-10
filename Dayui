@@ -2094,207 +2094,289 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 
 		SetupDragging(WindowHeader, Window)
 
-		local LogsContent = Instance.new("ScrollingFrame")
-		LogsContent.Name = "Content"
-		LogsContent.BackgroundTransparency = 1
-		LogsContent.BorderSizePixel = 0
-		LogsContent.Position = UDim2.fromOffset(0, 26)
-		LogsContent.Size = UDim2.new(1, 0, 1, -26)
-		LogsContent.ScrollBarThickness = 1
-		LogsContent.ScrollBarImageColor3 = T.Primary
-		LogsContent.ScrollBarImageTransparency = 0.9
-		LogsContent.BottomImage = "rbxassetid://9416839567"
-		LogsContent.MidImage = "rbxassetid://9416839567"
-		LogsContent.TopImage = "rbxassetid://9416839567"
-		LogsContent.CanvasSize = UDim2.fromOffset(0, 0)
-		LogsContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		LogsContent.ZIndex = 601
-		LogsContent.Parent = Window
+		local LogsTabBar = Instance.new("Frame")
+		LogsTabBar.Name = "TabBar"
+		LogsTabBar.BackgroundColor3 = T.Window3
+		LogsTabBar.BorderSizePixel = 0
+		LogsTabBar.Position = UDim2.fromOffset(0, 26)
+		LogsTabBar.Size = UDim2.new(1, 0, 0, 24)
+		LogsTabBar.ZIndex = 601
+		LogsTabBar.Parent = Window
 
-		BindTheme(LogsContent, { ScrollBarImageColor3 = "Primary" })
+		BindTheme(LogsTabBar, { BackgroundColor3 = "Window3" })
 
-		local LogsList = Instance.new("UIListLayout")
-		LogsList.Parent = LogsContent
-		LogsList.Padding = UDim.new(0, 8)
-		LogsList.FillDirection = Enum.FillDirection.Vertical
-		LogsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		LogsList.SortOrder = Enum.SortOrder.LayoutOrder
+		local LogsTabBarStroke = Instance.new("UIStroke")
+		LogsTabBarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		LogsTabBarStroke.Color = T.Stroke
+		LogsTabBarStroke.LineJoinMode = Enum.LineJoinMode.Round
+		LogsTabBarStroke.Thickness = 1
+		LogsTabBarStroke.Parent = LogsTabBar
 
-		local LogsPad = Instance.new("UIPadding")
-		LogsPad.PaddingTop = UDim.new(0, 6)
-		LogsPad.PaddingBottom = UDim.new(0, 6)
-		LogsPad.Parent = LogsContent
+		BindTheme(LogsTabBarStroke, { Color = "Stroke" })
 
-		for i, entry in ipairs(UpdateLogs) do
-			local Row = Instance.new("Frame")
-			Row.Name = "Entry_" .. i
-			Row.BackgroundTransparency = 1
-			Row.BorderSizePixel = 0
-			Row.Size = UDim2.new(1, -10, 0, 0)
-			Row.AutomaticSize = Enum.AutomaticSize.Y
-			Row.LayoutOrder = i
-			Row.ZIndex = 602
-			Row.Parent = LogsContent
+		local function BuildSourcePane(srcLabel, sourceKey)
+			local Content = Instance.new("ScrollingFrame")
+			Content.Name = srcLabel .. "Content"
+			Content.BackgroundTransparency = 1
+			Content.BorderSizePixel = 0
+			Content.Position = UDim2.fromOffset(0, 50)
+			Content.Size = UDim2.new(1, 0, 1, -50)
+			Content.ScrollBarThickness = 1
+			Content.ScrollBarImageColor3 = T.Primary
+			Content.ScrollBarImageTransparency = 0.9
+			Content.BottomImage = "rbxassetid://9416839567"
+			Content.MidImage = "rbxassetid://9416839567"
+			Content.TopImage = "rbxassetid://9416839567"
+			Content.CanvasSize = UDim2.fromOffset(0, 0)
+			Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			Content.ZIndex = 601
+			Content.Parent = Window
 
-			local RowList = Instance.new("UIListLayout")
-			RowList.Parent = Row
-			RowList.Padding = UDim.new(0, 2)
-			RowList.FillDirection = Enum.FillDirection.Vertical
-			RowList.HorizontalAlignment = Enum.HorizontalAlignment.Left
-			RowList.SortOrder = Enum.SortOrder.LayoutOrder
+			BindTheme(Content, { ScrollBarImageColor3 = "Primary" })
 
-			local RowPad = Instance.new("UIPadding")
-			RowPad.PaddingLeft = UDim.new(0, 6)
-			RowPad.PaddingRight = UDim.new(0, 6)
-			RowPad.Parent = Row
+			local List = Instance.new("UIListLayout")
+			List.Parent = Content
+			List.Padding = UDim.new(0, 8)
+			List.FillDirection = Enum.FillDirection.Vertical
+			List.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			List.SortOrder = Enum.SortOrder.LayoutOrder
 
-			local HeadLine = Instance.new("Frame")
-			HeadLine.BackgroundTransparency = 1
-			HeadLine.Size = UDim2.new(1, 0, 0, 18)
-			HeadLine.LayoutOrder = 1
-			HeadLine.ZIndex = 603
-			HeadLine.Parent = Row
+			local Pad = Instance.new("UIPadding")
+			Pad.PaddingTop = UDim.new(0, 6)
+			Pad.PaddingBottom = UDim.new(0, 6)
+			Pad.Parent = Content
 
-			local Version = Instance.new("TextLabel")
-			Version.BackgroundTransparency = 1
-			Version.Font = Enum.Font.RobotoCondensed
-			Version.Position = UDim2.fromOffset(0, 0)
-			Version.Size = UDim2.new(0.62, 0, 1, 0)
-			Version.Text = entry.Version
-			Version.TextColor3 = T.Primary
-			Version.TextSize = 16
-			Version.TextXAlignment = Enum.TextXAlignment.Left
-			Version.TextYAlignment = Enum.TextYAlignment.Center
-			Version.ZIndex = 603
-			Version.Parent = HeadLine
+			for i, entry in ipairs(UpdateLogs) do
+				local data = entry[sourceKey]
+				local hasContent = data and (data.Title or (data.Notes and #data.Notes > 0))
+				if hasContent then
+					local Row = Instance.new("Frame")
+					Row.Name = "Entry_" .. i
+					Row.BackgroundTransparency = 1
+					Row.BorderSizePixel = 0
+					Row.Size = UDim2.new(1, -10, 0, 0)
+					Row.AutomaticSize = Enum.AutomaticSize.Y
+					Row.LayoutOrder = i
+					Row.ZIndex = 602
+					Row.Parent = Content
 
-			BindTheme(Version, { TextColor3 = "Primary" })
+					local RowList = Instance.new("UIListLayout")
+					RowList.Parent = Row
+					RowList.Padding = UDim.new(0, 2)
+					RowList.FillDirection = Enum.FillDirection.Vertical
+					RowList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+					RowList.SortOrder = Enum.SortOrder.LayoutOrder
 
-			local Date = Instance.new("TextLabel")
-			Date.BackgroundTransparency = 1
-			Date.Font = Enum.Font.SourceSans
-			Date.Position = UDim2.new(0.62, 0, 0, 0)
-			Date.Size = UDim2.new(0.38, 0, 1, 0)
-			Date.Text = tostring(entry.Date or "")
-			Date.TextColor3 = T.TextDim
-			Date.TextSize = 12
-			Date.TextXAlignment = Enum.TextXAlignment.Right
-			Date.TextYAlignment = Enum.TextYAlignment.Center
-			Date.ZIndex = 603
-			Date.Parent = HeadLine
+					local RowPad = Instance.new("UIPadding")
+					RowPad.PaddingLeft = UDim.new(0, 6)
+					RowPad.PaddingRight = UDim.new(0, 6)
+					RowPad.Parent = Row
 
-			BindTheme(Date, { TextColor3 = "TextDim" })
+					local HeadLine = Instance.new("Frame")
+					HeadLine.BackgroundTransparency = 1
+					HeadLine.Size = UDim2.new(1, 0, 0, 18)
+					HeadLine.LayoutOrder = 1
+					HeadLine.ZIndex = 603
+					HeadLine.Parent = Row
 
-			local nextOrder = 1
+					local Version = Instance.new("TextLabel")
+					Version.BackgroundTransparency = 1
+					Version.Font = Enum.Font.RobotoCondensed
+					Version.Position = UDim2.fromOffset(0, 0)
+					Version.Size = UDim2.new(0.62, 0, 1, 0)
+					Version.Text = entry.Version
+					Version.TextColor3 = T.Primary
+					Version.TextSize = 16
+					Version.TextXAlignment = Enum.TextXAlignment.Left
+					Version.TextYAlignment = Enum.TextYAlignment.Center
+					Version.ZIndex = 603
+					Version.Parent = HeadLine
 
-			local function RenderSource(srcLabel, data)
-				if not data then return end
-				local hasContent = data.Title or (data.Notes and #data.Notes > 0)
-				if not hasContent then return end
+					BindTheme(Version, { TextColor3 = "Primary" })
 
-				nextOrder = nextOrder + 1
-				local Hdr = Instance.new("TextLabel")
-				Hdr.BackgroundTransparency = 1
-				Hdr.Font = Enum.Font.SourceSansBold
-				Hdr.LayoutOrder = nextOrder
-				Hdr.Size = UDim2.new(1, 0, 0, 15)
-				Hdr.Text = srcLabel
-				Hdr.TextColor3 = T.TextPrimary
-				Hdr.TextSize = 13
-				Hdr.TextXAlignment = Enum.TextXAlignment.Left
-				Hdr.TextYAlignment = Enum.TextYAlignment.Center
-				Hdr.ZIndex = 603
-				Hdr.Parent = Row
+					local Date = Instance.new("TextLabel")
+					Date.BackgroundTransparency = 1
+					Date.Font = Enum.Font.SourceSans
+					Date.Position = UDim2.new(0.62, 0, 0, 0)
+					Date.Size = UDim2.new(0.38, 0, 1, 0)
+					Date.Text = tostring(entry.Date or "")
+					Date.TextColor3 = T.TextDim
+					Date.TextSize = 12
+					Date.TextXAlignment = Enum.TextXAlignment.Right
+					Date.TextYAlignment = Enum.TextYAlignment.Center
+					Date.ZIndex = 603
+					Date.Parent = HeadLine
 
-				BindTheme(Hdr, { TextColor3 = "TextPrimary" })
+					BindTheme(Date, { TextColor3 = "TextDim" })
 
-				if data.Title then
-					nextOrder = nextOrder + 1
-					local Subtitle = Instance.new("TextLabel")
-					Subtitle.BackgroundTransparency = 1
-					Subtitle.Font = Enum.Font.SourceSans
-					Subtitle.LayoutOrder = nextOrder
-					Subtitle.Size = UDim2.new(1, 0, 0, 15)
-					Subtitle.Text = tostring(data.Title)
-					Subtitle.TextColor3 = T.TextPrimary
-					Subtitle.TextSize = 14
-					Subtitle.TextTruncate = Enum.TextTruncate.AtEnd
-					Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-					Subtitle.TextYAlignment = Enum.TextYAlignment.Center
-					Subtitle.ZIndex = 603
-					Subtitle.Parent = Row
+					local nextOrder = 1
 
-					BindTheme(Subtitle, { TextColor3 = "TextPrimary" })
-				end
+					if data.Title then
+						nextOrder = nextOrder + 1
+						local Subtitle = Instance.new("TextLabel")
+						Subtitle.BackgroundTransparency = 1
+						Subtitle.Font = Enum.Font.SourceSans
+						Subtitle.LayoutOrder = nextOrder
+						Subtitle.Size = UDim2.new(1, 0, 0, 15)
+						Subtitle.Text = tostring(data.Title)
+						Subtitle.TextColor3 = T.TextPrimary
+						Subtitle.TextSize = 14
+						Subtitle.TextTruncate = Enum.TextTruncate.AtEnd
+						Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+						Subtitle.TextYAlignment = Enum.TextYAlignment.Center
+						Subtitle.ZIndex = 603
+						Subtitle.Parent = Row
 
-				if data.Notes then
-					for _, groupType in ipairs(ChangeGroupOrder) do
-						local groupNotes = {}
-						for _, note in ipairs(data.Notes) do
-							local noteType = "Added"
-							if type(note) == "table" then noteType = tostring(note.Type or "Added") end
-							if noteType == groupType then
-								local noteText = note
-								if type(note) == "table" then noteText = tostring(note.Text or note[1] or "") end
-								table.insert(groupNotes, noteText)
+						BindTheme(Subtitle, { TextColor3 = "TextPrimary" })
+					end
+
+					if data.Notes then
+						for _, groupType in ipairs(ChangeGroupOrder) do
+							local groupNotes = {}
+							for _, note in ipairs(data.Notes) do
+								local noteType = "Added"
+								if type(note) == "table" then noteType = tostring(note.Type or "Added") end
+								if noteType == groupType then
+									local noteText = note
+									if type(note) == "table" then noteText = tostring(note.Text or note[1] or "") end
+									table.insert(groupNotes, noteText)
+								end
 							end
-						end
-						if #groupNotes > 0 then
-							nextOrder = nextOrder + 1
-							local GroupHdr = Instance.new("TextLabel")
-							GroupHdr.BackgroundTransparency = 1
-							GroupHdr.Font = Enum.Font.SourceSansBold
-							GroupHdr.LayoutOrder = nextOrder
-							GroupHdr.Size = UDim2.new(1, 0, 0, 15)
-							GroupHdr.Text = groupType
-							GroupHdr.TextColor3 = T.TextPrimary
-							GroupHdr.TextSize = 13
-							GroupHdr.TextXAlignment = Enum.TextXAlignment.Left
-							GroupHdr.TextYAlignment = Enum.TextYAlignment.Center
-							GroupHdr.ZIndex = 603
-							GroupHdr.Parent = Row
-
-							BindTheme(GroupHdr, { TextColor3 = "TextPrimary" })
-
-							for _, noteText in ipairs(groupNotes) do
+							if #groupNotes > 0 then
 								nextOrder = nextOrder + 1
-								local Note = Instance.new("TextLabel")
-								Note.BackgroundTransparency = 1
-								Note.Font = Enum.Font.SourceSans
-								Note.LayoutOrder = nextOrder
-								Note.Size = UDim2.new(1, 0, 0, 14)
-								Note.AutomaticSize = Enum.AutomaticSize.Y
-								Note.Text = "- " .. tostring(noteText)
-								Note.TextColor3 = T.TextDim
-								Note.TextSize = 13
-								Note.TextWrapped = true
-								Note.TextXAlignment = Enum.TextXAlignment.Left
-								Note.TextYAlignment = Enum.TextYAlignment.Top
-								Note.ZIndex = 603
-								Note.Parent = Row
+								local GroupHdr = Instance.new("TextLabel")
+								GroupHdr.BackgroundTransparency = 1
+								GroupHdr.Font = Enum.Font.SourceSansBold
+								GroupHdr.LayoutOrder = nextOrder
+								GroupHdr.Size = UDim2.new(1, 0, 0, 15)
+								GroupHdr.Text = groupType
+								GroupHdr.TextColor3 = T.TextPrimary
+								GroupHdr.TextSize = 13
+								GroupHdr.TextXAlignment = Enum.TextXAlignment.Left
+								GroupHdr.TextYAlignment = Enum.TextYAlignment.Center
+								GroupHdr.ZIndex = 603
+								GroupHdr.Parent = Row
 
-								BindTheme(Note, { TextColor3 = "TextDim" })
+								BindTheme(GroupHdr, { TextColor3 = "TextPrimary" })
+
+								for _, noteText in ipairs(groupNotes) do
+									nextOrder = nextOrder + 1
+									local Note = Instance.new("TextLabel")
+									Note.BackgroundTransparency = 1
+									Note.Font = Enum.Font.SourceSans
+									Note.LayoutOrder = nextOrder
+									Note.Size = UDim2.new(1, 0, 0, 14)
+									Note.AutomaticSize = Enum.AutomaticSize.Y
+									Note.Text = "- " .. tostring(noteText)
+									Note.TextColor3 = T.TextDim
+									Note.TextSize = 13
+									Note.TextWrapped = true
+									Note.TextXAlignment = Enum.TextXAlignment.Left
+									Note.TextYAlignment = Enum.TextYAlignment.Top
+									Note.ZIndex = 603
+									Note.Parent = Row
+
+									BindTheme(Note, { TextColor3 = "TextDim" })
+								end
 							end
 						end
+					end
+
+					if i < #UpdateLogs then
+						nextOrder = nextOrder + 1
+						local Sep = Instance.new("Frame")
+						Sep.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+						Sep.BackgroundTransparency = 0.9
+						Sep.BorderSizePixel = 0
+						Sep.Size = UDim2.new(1, -12, 0, 1)
+						Sep.LayoutOrder = nextOrder
+						Sep.ZIndex = 603
+						Sep.Parent = Row
 					end
 				end
 			end
 
-			RenderSource("Lib", entry.Lib)
-			RenderSource("Script", entry.Script)
-
-			if i < #UpdateLogs then
-				nextOrder = nextOrder + 1
-				local Sep = Instance.new("Frame")
-				Sep.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				Sep.BackgroundTransparency = 0.9
-				Sep.BorderSizePixel = 0
-				Sep.Size = UDim2.new(1, -12, 0, 1)
-				Sep.LayoutOrder = nextOrder
-				Sep.ZIndex = 603
-				Sep.Parent = Row
-			end
+			return Content
 		end
+
+		local ActiveLogsTab = nil
+
+		local function ActivateLogsTab(tab)
+			if ActiveLogsTab then
+				local a = ActiveLogsTab
+				a.pane.Visible = false
+				TweenProperty(a.button, { BackgroundColor3 = T.Button1, TextColor3 = T.TextPrimary }, 0.2, 2)
+				TweenProperty(a.stroke, { Color = T.Stroke }, 0.2, 2)
+			end
+			ActiveLogsTab = tab
+			tab.pane.Visible = true
+			TweenProperty(tab.button, { BackgroundColor3 = T.Button3, TextColor3 = T.Primary }, 0.2, 2)
+			TweenProperty(tab.stroke, { Color = T.StrokeHover }, 0.2, 2)
+		end
+
+		local function MakeLogsTab(tabName, xOffset)
+			local tab = {}
+
+			local Btn = Instance.new("TextButton")
+			Btn.Name = tabName .. "Tab"
+			Btn.AnchorPoint = Vector2.new(0, 0.5)
+			Btn.BackgroundColor3 = T.Button1
+			Btn.BorderSizePixel = 0
+			Btn.Font = Enum.Font.SourceSans
+			Btn.Position = UDim2.fromOffset(xOffset, 12)
+			Btn.Size = UDim2.fromOffset(70, 20)
+			Btn.Text = tabName
+			Btn.TextColor3 = T.TextPrimary
+			Btn.TextSize = 13
+			Btn.TextYAlignment = Enum.TextYAlignment.Center
+			Btn.AutoButtonColor = false
+			Btn.ZIndex = 602
+			Btn.Parent = LogsTabBar
+
+			BindTheme(Btn, { BackgroundColor3 = "Button1", TextColor3 = "TextPrimary" })
+
+			local Stroke = Instance.new("UIStroke")
+			Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			Stroke.Color = T.Stroke
+			Stroke.LineJoinMode = Enum.LineJoinMode.Round
+			Stroke.Thickness = 1
+			Stroke.Parent = Btn
+
+			BindTheme(Stroke, { Color = "Stroke" })
+
+			local Corner = Instance.new("UICorner")
+			Corner.CornerRadius = UDim.new(0, 2)
+			Corner.Parent = Btn
+
+			tab.button = Btn
+			tab.stroke = Stroke
+			tab.pane = BuildSourcePane(tabName, tabName)
+			tab.pane.Visible = false
+
+			Btn.MouseEnter:Connect(function()
+				if ActiveLogsTab ~= tab then
+					TweenProperty(Btn, { BackgroundColor3 = T.Button2 }, 0.2, 2)
+					TweenProperty(Stroke, { Color = T.StrokeHover }, 0.2, 2)
+				end
+			end)
+
+			Btn.MouseLeave:Connect(function()
+				if ActiveLogsTab ~= tab then
+					TweenProperty(Btn, { BackgroundColor3 = T.Button1 }, 0.2, 2)
+					TweenProperty(Stroke, { Color = T.Stroke }, 0.2, 2)
+				end
+			end)
+
+			Btn.MouseButton1Click:Connect(function()
+				ActivateLogsTab(tab)
+			end)
+
+			return tab
+		end
+
+		local TabLib = MakeLogsTab("Lib", 6)
+		local TabScript = MakeLogsTab("Script", 84)
+		ActivateLogsTab(TabLib)
 
 		updateLogsWindow = Window
 	end
