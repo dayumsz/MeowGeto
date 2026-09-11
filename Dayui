@@ -1,4 +1,3 @@
-
 local Meow = {}
 local TweenService = game:GetService("TweenService") or error("TweenService not available")
 local UserInputService = game:GetService("UserInputService") or error("UserInputService not available")
@@ -2375,7 +2374,12 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 
 		local TabLib = MakeLogsTab("Lib", 6)
 		local TabScript = MakeLogsTab("Script", 84)
-		ActivateLogsTab(TabLib)
+		local HasScriptLogs = false
+		for _, Entry in ipairs(ScriptLogs) do
+			local D = Entry and Entry.Script
+			if D and (D.Title or (D.Notes and #D.Notes > 0)) then HasScriptLogs = true; break end
+		end
+		ActivateLogsTab(HasScriptLogs and TabScript or TabLib)
 
 		updateLogsWindow = Window
 	end
