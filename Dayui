@@ -111,6 +111,19 @@ Themes.DefaultTheme = Themes.Default
 
 local UpdateLogs = {
 	{
+		Version = "v1.2.1",
+		Date = "Sep 18, 2026",
+		Lib = {
+			Title = "Dayui Library",
+			Notes = {
+				{ Type = "Added", Text = "Per-toggle keybinds now work on EVERY toggle, including the ones inside NewOptionGroup." },
+				{ Type = "Added", Text = "Right-click any option group toggle (or its [Key] chip) to bind a key, click the chip to rebind, right-click it to remove." },
+				{ Type = "Added", Text = "Option group options accept a defaultKey to start with a key and a saveKey to persist it." },
+				{ Type = "Changed", Text = "The [Key] chip shows automatically while binding and once a key is assigned." },
+			},
+		},
+	},
+	{
 		Version = "v1.2.0",
 		Date = "Sep 18, 2026",
 		Lib = {
@@ -4385,12 +4398,137 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 							end
 						end)
 
-						rows[opt.name] = rows[opt.name] or {}
-						rows[opt.name].toggleBtn = TogBtn
-						rows[opt.name].updateToggleVisual = updateToggleVisual
+rows[opt.name] = rows[opt.name] or {}
+					rows[opt.name].toggleBtn = TogBtn
+					rows[opt.name].updateToggleVisual = updateToggleVisual
+
+					local optName = opt.name
+					local sKey = type(opt.saveKey) == "string" and opt.saveKey or nil
+					local currentKey = Enum.KeyCode.Unknown
+					local initKey = opt.defaultKey
+					if sKey then
+						local stored = saveManager:GetValue(sKey, initKey)
+						if stored ~= nil then initKey = stored end
+					end
+					if typeof(initKey) == "EnumItem" then
+						currentKey = initKey
+					elseif type(initKey) == "string" then
+						currentKey = StringToKeyCode(initKey)
+					end
+					local listening = false
+					local KeyChip
+
+					local function KeyChipDisplay()
+						return "[" .. (currentKey ~= Enum.KeyCode.Unknown and currentKey.Name or "None") .. "]"
 					end
 
-					if hasSlider then
+					local function KeyChipStyle()
+						if not KeyChip then return end
+						KeyChip.TextColor3 = listening and T.Primary or T.TextDim
+					end
+
+					local function RefreshChip()
+						if not KeyChip then return end
+						KeyChip.Text = listening and "[...]" or KeyChipDisplay()
+						KeyChip.Visible = listening or currentKey ~= Enum.KeyCode.Unknown
+						KeyChipStyle()
+					end
+
+					local function CreateKeyChip()
+						if KeyChip then
+							RefreshChip()
+							return
+						end
+						KeyChip = Instance.new("TextButton")
+						KeyChip.Name = "Keybind"
+						KeyChip.BackgroundTransparency = 1
+						KeyChip.AutoButtonColor = false
+						KeyChip.Font = Enum.Font.SourceSans
+						KeyChip.Text = KeyChipDisplay()
+						KeyChip.TextColor3 = T.TextDim
+						KeyChip.TextSize = 13
+						KeyChip.Size = UDim2.fromOffset(0, 16)
+						KeyChip.AutomaticSize = Enum.AutomaticSize.X
+						KeyChip.AnchorPoint = Vector2.new(1, 0.5)
+						KeyChip.Position = UDim2.new(1, -23, 0, 12)
+						KeyChip.ZIndex = 39
+						KeyChip.Parent = Row
+						BindTheme(KeyChip, { TextColor3 = "TextDim" })
+
+						local ChipPad = Instance.new("UIPadding")
+						ChipPad.PaddingLeft = UDim.new(0, 3)
+						ChipPad.PaddingRight = UDim.new(0, 3)
+						ChipPad.Parent = KeyChip
+
+						RowLabel.TextTruncate = Enum.TextTruncate.AtEnd
+						RowLabel.Size = UDim2.new(1, -92, 0, TOGGLE_ROW_H)
+
+						KeyChip.MouseEnter:Connect(function()
+							KeyChip.TextColor3 = listening and T.Primary or T.TextPrimary
+						end)
+						KeyChip.MouseLeave:Connect(function()
+							KeyChipStyle()
+						end)
+						KeyChip.MouseButton1Click:Connect(function()
+							listening = not listening
+							RefreshChip()
+						end)
+						KeyChip.MouseButton2Click:Connect(function()
+							if listening then return end
+							if currentKey ~= Enum.KeyCode.Unknown then
+								currentKey = Enum.KeyCode.Unknown
+								if sKey then
+									saveManager:SetValue(sKey, "None")
+									saveManager:Save(saveManagerName or "config")
+								end
+								RefreshChip()
+							end
+						end)
+
+						RefreshChip()
+					end
+
+					local toggleBindConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+						if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+						local k = input.KeyCode
+						if listening then
+							if k == Enum.KeyCode.Unknown then return end
+							if k == Enum.KeyCode.Escape then
+								listening = false
+							elseif k == Enum.KeyCode.Delete or k == Enum.KeyCode.Backspace then
+								currentKey = Enum.KeyCode.Unknown
+								if sKey then
+									saveManager:SetValue(sKey, "None")
+									saveManager:Save(saveManagerName or "config")
+								end
+								listening = false
+							else
+								currentKey = k
+								if sKey then
+									saveManager:SetValue(sKey, currentKey.Name)
+									saveManager:Save(saveManagerName or "config")
+								end
+								listening = false
+							end
+							RefreshChip()
+						elseif not gameProcessed and currentKey ~= Enum.KeyCode.Unknown and k == currentKey then
+							allStates[optName].toggleValue = not allStates[optName].toggleValue
+							updateToggleVisual(allStates[optName].toggleValue)
+							if callback then
+								callback(optName, allStates[optName].toggleValue, allStates[optName].sliderValue, allStates)
+							end
+						end
+					end)
+					table.insert(keybindInputConns, toggleBindConn)
+
+					TogBtn.MouseButton2Click:Connect(function()
+						CreateKeyChip()
+						listening = true
+						RefreshChip()
+					end)
+				end
+
+				if hasSlider then
 						local sliderMin     = opt.min or 0
 						local sliderMax     = opt.max or 100
 						local sliderDefault = allStates[opt.name].sliderValue
@@ -4763,6 +4901,130 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 							rows[opt.name] = rows[opt.name] or {}
 							rows[opt.name].toggleBtn = TogBtn
 							rows[opt.name].updateToggleVisual = updateToggleVisual
+
+							local optName = opt.name
+							local sKey = type(opt.saveKey) == "string" and opt.saveKey or nil
+							local currentKey = Enum.KeyCode.Unknown
+							local initKey = opt.defaultKey
+							if sKey then
+								local stored = saveManager:GetValue(sKey, initKey)
+								if stored ~= nil then initKey = stored end
+							end
+							if typeof(initKey) == "EnumItem" then
+								currentKey = initKey
+							elseif type(initKey) == "string" then
+								currentKey = StringToKeyCode(initKey)
+							end
+							local listening = false
+							local KeyChip
+
+							local function KeyChipDisplay()
+								return "[" .. (currentKey ~= Enum.KeyCode.Unknown and currentKey.Name or "None") .. "]"
+							end
+
+							local function KeyChipStyle()
+								if not KeyChip then return end
+								KeyChip.TextColor3 = listening and T.Primary or T.TextDim
+							end
+
+							local function RefreshChip()
+								if not KeyChip then return end
+								KeyChip.Text = listening and "[...]" or KeyChipDisplay()
+								KeyChip.Visible = listening or currentKey ~= Enum.KeyCode.Unknown
+								KeyChipStyle()
+							end
+
+							local function CreateKeyChip()
+								if KeyChip then
+									RefreshChip()
+									return
+								end
+								KeyChip = Instance.new("TextButton")
+								KeyChip.Name = "Keybind"
+								KeyChip.BackgroundTransparency = 1
+								KeyChip.AutoButtonColor = false
+								KeyChip.Font = Enum.Font.SourceSans
+								KeyChip.Text = KeyChipDisplay()
+								KeyChip.TextColor3 = T.TextDim
+								KeyChip.TextSize = 13
+								KeyChip.Size = UDim2.fromOffset(0, 16)
+								KeyChip.AutomaticSize = Enum.AutomaticSize.X
+								KeyChip.AnchorPoint = Vector2.new(1, 0.5)
+								KeyChip.Position = UDim2.new(1, -118, 0, 12)
+								KeyChip.ZIndex = 39
+								KeyChip.Parent = Row
+								BindTheme(KeyChip, { TextColor3 = "TextDim" })
+
+								local ChipPad = Instance.new("UIPadding")
+								ChipPad.PaddingLeft = UDim.new(0, 3)
+								ChipPad.PaddingRight = UDim.new(0, 3)
+								ChipPad.Parent = KeyChip
+
+								DDLabel.TextTruncate = Enum.TextTruncate.AtEnd
+
+								KeyChip.MouseEnter:Connect(function()
+									KeyChip.TextColor3 = listening and T.Primary or T.TextPrimary
+								end)
+								KeyChip.MouseLeave:Connect(function()
+									KeyChipStyle()
+								end)
+								KeyChip.MouseButton1Click:Connect(function()
+									listening = not listening
+									RefreshChip()
+								end)
+								KeyChip.MouseButton2Click:Connect(function()
+									if listening then return end
+									if currentKey ~= Enum.KeyCode.Unknown then
+										currentKey = Enum.KeyCode.Unknown
+										if sKey then
+											saveManager:SetValue(sKey, "None")
+											saveManager:Save(saveManagerName or "config")
+										end
+										RefreshChip()
+									end
+								end)
+
+								RefreshChip()
+							end
+
+							local toggleBindConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+								if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+								local k = input.KeyCode
+								if listening then
+									if k == Enum.KeyCode.Unknown then return end
+									if k == Enum.KeyCode.Escape then
+										listening = false
+									elseif k == Enum.KeyCode.Delete or k == Enum.KeyCode.Backspace then
+										currentKey = Enum.KeyCode.Unknown
+										if sKey then
+											saveManager:SetValue(sKey, "None")
+											saveManager:Save(saveManagerName or "config")
+										end
+										listening = false
+									else
+										currentKey = k
+										if sKey then
+											saveManager:SetValue(sKey, currentKey.Name)
+											saveManager:Save(saveManagerName or "config")
+										end
+										listening = false
+									end
+									RefreshChip()
+								elseif not gameProcessed and currentKey ~= Enum.KeyCode.Unknown and k == currentKey then
+									allStates[optName].toggleValue = not allStates[optName].toggleValue
+									updateToggleVisual(allStates[optName].toggleValue)
+									if callback then
+										callback(optName, allStates[optName].toggleValue, nil, allStates)
+									end
+								end
+							end)
+							table.insert(keybindInputConns, toggleBindConn)
+
+							TogBtn.MouseButton2Click:Connect(function()
+								CreateKeyChip()
+								listening = true
+								RefreshChip()
+							end)
 						end
 
 						local function buildOptionList()
