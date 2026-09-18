@@ -111,6 +111,20 @@ Themes.DefaultTheme = Themes.Default
 
 local UpdateLogs = {
 	{
+		Version = "v1.2.0",
+		Date = "Sep 18, 2026",
+		Lib = {
+			Title = "Dayui Library",
+			Notes = {
+				{ Type = "Added", Text = "Built-in keybinds on toggles: NewToggle(..., keybindOpts) assigns one key per toggle." },
+				{ Type = "Added", Text = "Right-click any toggle to start binding a key, or click its [Key] chip to rebind." },
+				{ Type = "Added", Text = "Pressing the bound key toggles the toggle and fires its callback." },
+				{ Type = "Added", Text = "Delete/Backspace while binding removes the key, Escape cancels." },
+				{ Type = "Added", Text = "Toggle objects now expose SetKeybind, GetKeybind and ClearKeybind." },
+			},
+		},
+	},
+	{
 		Version = "v1.1.0",
 		Date = "Sep 10, 2026",
 		Lib = {
@@ -127,10 +141,25 @@ local UpdateLogs = {
 }
 local ScriptLogs = {}
 
+local function VersionParts(V)
+	local tag = (tostring(V or "")):match("^%s*[vV]?(.-)%s*$") or ""
+	local out = {}
+	for part in string.gmatch(tag, "%d+") do
+		table.insert(out, tonumber(part) or 0)
+	end
+	return out
+end
+
 local function PickLatestVersion(A, B)
-	local NA = A and tostring(A) or ""
-	local NB = B and tostring(B) or ""
-	return (NA >= NB) and A or B
+	local PA = VersionParts(A)
+	local PB = VersionParts(B)
+	local N = math.max(#PA, #PB)
+	for i = 1, N do
+		local a = PA[i] or 0
+		local b = PB[i] or 0
+		if a ~= b then return (a > b) and A or B end
+	end
+	return (tostring(A) >= tostring(B)) and A or B
 end
 
 local LATEST_LOG_VERSION = UpdateLogs[1].Version
@@ -2699,7 +2728,7 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				return ClickSensor
 			end
 
-			function SectionAPI:NewToggle(toggleName, description, callback, defaultState)
+			function SectionAPI:NewToggle(toggleName, description, callback, defaultState, keybindOpts)
 				local elementOrder = #SectionContent:GetChildren()
 
 				local ControlFrame = Instance.new("Frame")
@@ -2821,6 +2850,142 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				UpdateToggleVisual(State)
 				table.insert(toggleVisuals, function() UpdateToggleVisual(State) end)
 
+				local kbSaveKey = (type(keybindOpts) == "table") and keybindOpts.saveKey or nil
+				local currentKey = Enum.KeyCode.Unknown
+				if type(keybindOpts) == "table" then
+					local initial = keybindOpts.key
+					if kbSaveKey then
+						local stored = saveManager:GetValue(kbSaveKey, initial)
+						if stored ~= nil then initial = stored end
+					end
+					if typeof(initial) == "EnumItem" then
+						currentKey = initial
+					elseif type(initial) == "string" then
+						currentKey = StringToKeyCode(initial)
+					end
+				end
+				local listening = false
+				local KeyChip
+				local keybindInputConn
+
+				local function KeyChipDisplay()
+					return "[" .. (currentKey ~= Enum.KeyCode.Unknown and currentKey.Name or "None") .. "]"
+				end
+
+				local function KeyChipStyle()
+					if not KeyChip then return end
+					KeyChip.TextColor3 = listening and T.Primary or T.TextDim
+				end
+
+				local function RefreshChip()
+					if not KeyChip then return end
+					KeyChip.Text = listening and "[...]" or KeyChipDisplay()
+					if listening or currentKey ~= Enum.KeyCode.Unknown or type(keybindOpts) == "table" then
+						KeyChip.Visible = true
+					else
+						KeyChip.Visible = false
+					end
+					KeyChipStyle()
+				end
+
+				local function CreateKeyChip()
+					if KeyChip then
+						RefreshChip()
+						return
+					end
+					KeyChip = Instance.new("TextButton")
+					KeyChip.Name = "Keybind"
+					KeyChip.BackgroundTransparency = 1
+					KeyChip.AutoButtonColor = false
+					KeyChip.Font = Enum.Font.SourceSans
+					KeyChip.Text = KeyChipDisplay()
+					KeyChip.TextColor3 = T.TextDim
+					KeyChip.TextSize = 13
+					KeyChip.Size = UDim2.fromOffset(0, 16)
+					KeyChip.AutomaticSize = Enum.AutomaticSize.X
+					KeyChip.AnchorPoint = Vector2.new(1, 0.5)
+					KeyChip.Position = UDim2.new(1, -23, 0.5, 0)
+					KeyChip.ZIndex = 36
+					KeyChip.Parent = BackToggle
+					BindTheme(KeyChip, { TextColor3 = "TextDim" })
+
+					local ChipPad = Instance.new("UIPadding")
+					ChipPad.PaddingLeft = UDim.new(0, 3)
+					ChipPad.PaddingRight = UDim.new(0, 3)
+					ChipPad.Parent = KeyChip
+
+					TogLabel.TextTruncate = Enum.TextTruncate.AtEnd
+					TogLabelPad.PaddingRight = UDim.new(0, 46)
+
+					KeyChip.MouseEnter:Connect(function()
+						KeyChip.TextColor3 = listening and T.Primary or T.TextPrimary
+					end)
+					KeyChip.MouseLeave:Connect(function()
+						KeyChipStyle()
+					end)
+					KeyChip.MouseButton1Click:Connect(function()
+						listening = not listening
+						RefreshChip()
+					end)
+					KeyChip.MouseButton2Click:Connect(function()
+						if listening then return end
+						if currentKey ~= Enum.KeyCode.Unknown then
+							currentKey = Enum.KeyCode.Unknown
+							if kbSaveKey then
+								saveManager:SetValue(kbSaveKey, "None")
+								saveManager:Save(saveManagerName or "config")
+							end
+							RefreshChip()
+						end
+					end)
+
+					RefreshChip()
+				end
+
+				if type(keybindOpts) == "table" then
+					CreateKeyChip()
+				end
+
+				local function ToggleBack()
+					State = not State
+					UpdateToggleVisual(State)
+					if callback then callback(State) end
+				end
+
+				keybindInputConn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+					if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+					local k = input.KeyCode
+					if listening then
+						if k == Enum.KeyCode.Unknown then return end
+						if k == Enum.KeyCode.Escape then
+							listening = false
+						elseif k == Enum.KeyCode.Delete or k == Enum.KeyCode.Backspace then
+							currentKey = Enum.KeyCode.Unknown
+							if kbSaveKey then
+								saveManager:SetValue(kbSaveKey, "None")
+								saveManager:Save(saveManagerName or "config")
+							end
+							listening = false
+						else
+							currentKey = k
+							if kbSaveKey then
+								saveManager:SetValue(kbSaveKey, currentKey.Name)
+								saveManager:Save(saveManagerName or "config")
+							end
+							listening = false
+						end
+						RefreshChip()
+					elseif not gameProcessed and currentKey ~= Enum.KeyCode.Unknown and k == currentKey then
+						ToggleBack()
+					end
+				end)
+
+				ControlFrame.AncestryChanged:Connect(function(_, parent2)
+					if not parent2 and keybindInputConn then
+						keybindInputConn:Disconnect()
+					end
+				end)
+
 				BackToggle.MouseEnter:Connect(function()
 					focused = true
 					if State then
@@ -2840,9 +3005,12 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 					TweenProperty(TogStroke, { Color = T.Stroke }, 0.2, 2)
 				end)
 				BackToggle.MouseButton1Click:Connect(function()
-					State = not State
-					UpdateToggleVisual(State)
-					if callback then callback(State) end
+					ToggleBack()
+				end)
+				BackToggle.MouseButton2Click:Connect(function()
+					CreateKeyChip()
+					listening = true
+					RefreshChip()
 				end)
 
 				local toggleObj = { Frame = ControlFrame }
@@ -2854,6 +3022,27 @@ function Meow:CreateLib(title, themeName, saveManagerName)
 				end
 				function toggleObj:Get()
 					return State
+				end
+				function toggleObj:SetKeybind(key)
+					currentKey = StringToKeyCode(key)
+					if kbSaveKey then
+						saveManager:SetValue(kbSaveKey, currentKey.Name)
+						saveManager:Save(saveManagerName or "config")
+					end
+					CreateKeyChip()
+					RefreshChip()
+				end
+				function toggleObj:GetKeybind()
+					if currentKey == Enum.KeyCode.Unknown then return nil end
+					return currentKey
+				end
+				function toggleObj:ClearKeybind()
+					currentKey = Enum.KeyCode.Unknown
+					if kbSaveKey then
+						saveManager:SetValue(kbSaveKey, "None")
+						saveManager:Save(saveManagerName or "config")
+					end
+					RefreshChip()
 				end
 				return toggleObj
 			end
