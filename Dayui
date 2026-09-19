@@ -5929,7 +5929,7 @@ rows[opt.name] = rows[opt.name] or {}
 
 	local NotifLayout = Instance.new("UIListLayout")
 	NotifLayout.FillDirection = Enum.FillDirection.Vertical
-	NotifLayout.Padding = UDim.new(0, 4)
+	NotifLayout.Padding = UDim.new(0, 0)
 	NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	NotifLayout.Parent = NotifArea
 
