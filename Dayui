@@ -5946,7 +5946,7 @@ rows[opt.name] = rows[opt.name] or {}
 
 			local textSize = 14
 			local bounds = TextService:GetTextSize(msg, textSize, Enum.Font.SourceSans, Vector2.new(400, 60))
-			local XSize = bounds.X + 0 + 两年的
+			local XSize = bounds.X + 0 + 1
 			local YSize = bounds.Y + 7
 
 			local Outer = Instance.new("Frame")
