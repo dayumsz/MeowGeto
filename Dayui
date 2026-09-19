@@ -5919,9 +5919,8 @@ rows[opt.name] = rows[opt.name] or {}
 	local NotifArea = Instance.new("Frame")
 	NotifArea.Name = "NotifArea"
 	NotifArea.BackgroundTransparency = 1
-	NotifArea.AnchorPoint = Vector2.new(1, 0)
-	NotifArea.Position = UDim2.new(1, 0, 0, 40)
-	NotifArea.Size = UDim2.new(0, 0, 0, 2000)
+	NotifArea.Position = UDim2.new(0, 12, 0, 40)
+	NotifArea.Size = UDim2.new(0, 300, 0, 2000)
 	NotifArea.AutomaticSize = Enum.AutomaticSize.Y
 	NotifArea.ZIndex = 700
 	NotifArea.Active = false
@@ -5929,7 +5928,7 @@ rows[opt.name] = rows[opt.name] or {}
 
 	local NotifLayout = Instance.new("UIListLayout")
 	NotifLayout.FillDirection = Enum.FillDirection.Vertical
-	NotifLayout.Padding = UDim.new(0, 0)
+	NotifLayout.Padding = UDim.new(0, 4)
 	NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	NotifLayout.Parent = NotifArea
 
@@ -5946,7 +5945,7 @@ rows[opt.name] = rows[opt.name] or {}
 
 			local textSize = 14
 			local bounds = TextService:GetTextSize(msg, textSize, Enum.Font.SourceSans, Vector2.new(400, 60))
-			local XSize = bounds.X + 0 + 1
+			local XSize = bounds.X + 8 + 4
 			local YSize = bounds.Y + 7
 
 			local Outer = Instance.new("Frame")
@@ -5959,8 +5958,6 @@ rows[opt.name] = rows[opt.name] or {}
 			Outer.Active = false
 			Outer.LayoutOrder = 1
 			Outer.Size = UDim2.fromOffset(0, YSize)
-			Outer.Position = UDim2.new(1, -0, 0, 0)
-			Outer.AnchorPoint = Vector2.new(1, 0)
 			Outer.ZIndex = 700
 			Outer.Parent = NotifArea
 
